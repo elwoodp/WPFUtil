@@ -1,0 +1,276 @@
+﻿<Window
+    x:Class="PathMaker.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:pm="clr-namespace:PathMaker"
+    xmlns:swm="clr-namespace:System.Windows.Media;assembly=PresentationCore"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    Title="{Binding AppTitle}" 
+    Height="400" 
+    Width="600" 
+    ResizeMode="CanResizeWithGrip"
+    MinWidth="600"
+    MinHeight="300"
+    Closed="Window_Closed"
+    Background="#FFA3C3EC"
+    Drop="Window_Drop"
+    DragOver="Window_DragOver"
+    AllowDrop="True"
+    Icon="MainIcon.ico"
+    >
+    <Window.Resources>
+        <Color x:Key="BackgroundColor">#FFA3C3EC</Color>
+        <Color x:Key="DarkBackgroundColor">#FF89A2C3</Color>
+
+        <SolidColorBrush x:Key="DarkGrayBrush" Color="#f333" />
+        <SolidColorBrush x:Key="MediumGrayBrush" Color="#f666" />
+        <SolidColorBrush x:Key="LightGrayBrush" Color="#fbbb" />
+        <SolidColorBrush x:Key="PaleGrayBrush" Color="#feee" />
+
+        <LinearGradientBrush x:Key="ButtonInertBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#fccc" Offset="0" />
+            <GradientStop Color="#feee" Offset=".1" />
+            <GradientStop Color="#faaa" Offset="1" />
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="ButtonHoverBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#fccc" Offset="0" />
+            <GradientStop Color="#feee" Offset=".4" />
+            <GradientStop Color="#faaa" Offset="1" />
+        </LinearGradientBrush>
+        
+        <ContextMenu x:Key="MainWindowContextMenu">
+            <MenuItem Header="Copy Image"
+                      Click="CopyImage_Click"
+                      />
+        </ContextMenu>
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource ButtonInertBrush}" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource ButtonHoverBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
+        <SolidColorBrush x:Key="DarkBackgroundBrush" Color="{StaticResource DarkBackgroundColor}" />
+
+        <Thickness x:Key="SetterLabelMargin">4,0,2,1</Thickness>
+        <Thickness x:Key="SetterRowPanelMargin">0,2,0,0</Thickness>
+
+        <SolidColorBrush x:Key="ErrorTextBrush" Color="#ffdd0000" />
+
+        <swm:ScaleTransform 
+            x:Key="ScaleTransform" 
+            ScaleX="{Binding Scale}" 
+            ScaleY="{Binding Scale}"
+            />
+
+        <Style x:Key="NumberBoxStyle" TargetType="TextBox">
+            <Setter Property="BorderBrush" Value="{StaticResource MediumGrayBrush}" />
+            <Setter Property="Width" Value="52" />
+        </Style>
+        
+        <Style x:Key="ColorList" TargetType="ComboBox">
+            <Setter Property="ItemsSource" Value="{Binding NamedColors}" />
+            <Setter Property="Width" Value="165" />
+            <Setter Property="SelectedValuePath" Value="Name" />
+            <!--
+            <Setter Property="BorderBrush" Value="{StaticResource MediumGrayBrush}" />
+            <Setter Property="Background" Value="{StaticResource ButtonBrush}" />
+            -->
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <Border
+                                Background="{Binding Brush}"
+                                BorderBrush="{StaticResource MediumGrayBrush}"
+                                BorderThickness="1"
+                                Width="12"
+                                Height="12"
+                                VerticalAlignment="Center"
+                                Margin="2,0,2,0"
+                                SnapsToDevicePixels="True"
+                                />
+                            <TextBlock Text="{Binding Name}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid
+        Name="MainGrid"
+        ContextMenu="{StaticResource MainWindowContextMenu}"
+        >
+        <Grid.RowDefinitions>
+            <!-- Path display -->
+            <RowDefinition Height="*" MinHeight="52" />
+            <!-- GridSplitter -->
+            <RowDefinition Height="6" />
+            <!-- Text box-->
+            <RowDefinition Height="*" MinHeight="52" />
+            <!-- Controls: Colors, line, etc. -->
+            <RowDefinition Height="Auto" />
+            <!-- Controls: Colors, line, etc. -->
+            <RowDefinition Height="22" />
+        </Grid.RowDefinitions>
+
+        <!-- Path display panel -->
+        <StackPanel
+            Grid.Row="0"
+            Name="TopPanel"
+            Background="White"
+            VerticalAlignment="Stretch"
+            HorizontalAlignment="Stretch"
+            ClipToBounds="True"
+            >
+            <ContentControl
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Left"
+                VerticalContentAlignment="Top"
+                Padding="4"
+                Background="{StaticResource PaleGrayBrush}"
+                >
+                <ContentControl
+                    Name="PathContainer"
+                    Content="{Binding Path}"
+                    RenderTransform="{StaticResource ScaleTransform}"
+                    Width="Auto"
+                    Height="Auto"
+                    BorderBrush="Black"
+                    BorderThickness="1"
+                    Background="Transparent"
+                    />
+            </ContentControl>
+        </StackPanel>
+
+        <GridSplitter
+            Grid.Row="1" 
+            Height="6"
+            ResizeDirection="Rows"
+            HorizontalAlignment="Stretch"
+            BorderThickness="0,1,0,1"
+            Background="{DynamicResource LightGrayBrush}" 
+            BorderBrush="{DynamicResource MediumGrayBrush}"
+            IsEnabled="True"
+            />
+
+        <TextBox 
+            Height="Auto"
+            Margin="0,0,0,0" 
+            Grid.Row="2"
+            TextWrapping="Wrap" 
+            Text="{Binding PathText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            AcceptsReturn="True"
+            AcceptsTab="True" VerticalScrollBarVisibility="Visible" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource MediumGrayBrush}"
+            AllowDrop="True"
+            DragOver="Window_DragOver"
+            DragEnter="Window_DragOver"
+            />
+
+        <!-- Control panel -->
+        <StackPanel
+            VerticalAlignment="Stretch"
+            HorizontalAlignment="Stretch"
+            Grid.Row="3"
+            >
+                <StackPanel
+                    Grid.Row="0"
+                    Name="ControlPanelRows"
+                    Orientation="Vertical"
+                    Height="52"
+                    >
+                    <StackPanel
+                        Name="ControlPanelRow1"
+                        Orientation="Horizontal"
+                        Margin="{StaticResource SetterRowPanelMargin}"
+                        HorizontalAlignment="Stretch"
+                        >
+                        <TextBlock Text="Stroke:" Margin="{StaticResource SetterLabelMargin}" VerticalAlignment="Center" />
+                        <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding StrokeColor}" />
+
+                        <TextBlock Text="Fill:" Margin="{StaticResource SetterLabelMargin}" VerticalAlignment="Center" />
+                        <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding FillColor}" />
+
+                        <TextBlock Text="Line:" Margin="{StaticResource SetterLabelMargin}" VerticalAlignment="Center" />
+                        <TextBox Text="{Binding StrokeThickness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 MouseWheel="UDoubleBox_MouseWheel"
+                                 TextChanged="UDoubleBox_TextChanged"
+                                 Style="{StaticResource NumberBoxStyle}"
+                                 />
+
+                        <TextBlock Text="Scale:" Margin="{StaticResource SetterLabelMargin}" VerticalAlignment="Center" />
+                        <TextBox 
+                            Text="{Binding Scale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                            MouseWheel="ScaleText_MouseWheel"
+                            GotFocus="NumberText_GotFocus"
+                            Style="{StaticResource NumberBoxStyle}"
+                            />
+                    </StackPanel>
+                </StackPanel>
+                <DockPanel
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Bottom"
+                    Grid.Row="1"
+                    Margin="0,1,0,0" 
+                    Height="60"
+                    >
+                    <Button
+                        DockPanel.Dock="Left"
+                        Command="{Binding DisplayPathCommand}"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Padding="8,0,8,0"
+                        Content="Show"
+                        Height="22"
+                        />
+                    <!-- 
+                        Background="{StaticResource ButtonBrush}"
+                    Due to yet another in an infinite series of undiagnosable cretinous random anomalies, 
+                    bugs, hidden undocumented misfeatures, and moronic design flaws in WPF, plus the simple 
+                    fact that the whole thing is conceptually fucked beyond all hope from the get-go due to 
+                    the lack of strong typing, HorizontalAlignment doesn't work on these controls if 
+                    they're in a StackPanel. 
+                    -->
+                    <Border
+                        DockPanel.Dock="Bottom"
+                        BorderThickness="1"
+                        BorderBrush="{StaticResource MediumGrayBrush}"
+                        Background="AntiqueWhite"
+                        Margin="2,1,1,1"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        >
+                        <TextBlock
+                            Padding="3,0,0,0"
+                            Foreground="{StaticResource ErrorTextBrush}"
+                            Text="{Binding PathErrorText}"
+                            TextWrapping="Wrap"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            />
+                    </Border>
+                </DockPanel>
+        </StackPanel>
+
+        <StatusBar
+            Name="StatusBar"
+            Grid.Row="4"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Bottom"
+            Height="22"
+            Margin="0,0,0,0"
+            BorderThickness="0,1,0,0"
+            BorderBrush="{StaticResource DarkBackgroundBrush}"
+            Background="{StaticResource BackgroundBrush}"
+            />
+    </Grid>
+</Window>
