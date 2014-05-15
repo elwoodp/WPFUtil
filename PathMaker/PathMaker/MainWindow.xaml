@@ -201,9 +201,9 @@
                         <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding FillColor}" />
 
                         <TextBlock Text="Line:" Margin="{StaticResource SetterLabelMargin}" VerticalAlignment="Center" />
-                        <TextBox Text="{Binding StrokeThickness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox Text="{Binding StrokeThickness, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                                  MouseWheel="UDoubleBox_MouseWheel"
-                                 TextChanged="UDoubleBox_TextChanged"
+                                 LostFocus="UDoubleBox_LostFocus"
                                  Style="{StaticResource NumberBoxStyle}"
                                  />
 

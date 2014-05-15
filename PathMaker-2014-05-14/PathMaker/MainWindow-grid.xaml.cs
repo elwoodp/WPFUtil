@@ -15,8 +15,6 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using System.IO;
-using System.Windows.Interop;
 
 namespace PathMaker
 {
@@ -39,27 +37,16 @@ namespace PathMaker
 
             LoadSettings(Settings);
 
-            if (((PathMaker.App)App.Current).Args.Length > 0)
-            {
-                try
-                {
-                    var args = ((PathMaker.App)App.Current).Args;
-                    if (System.IO.File.Exists(args[0]))
-                    {
-                        ViewModel.LoadFile(args[0]);
-                    }
-                    else
-                    {
-                        ViewModel.PathText = args[0];
-                    }
+            ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+        }
 
-                    ViewModel.UpdatePath();
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(App.Current.MainWindow, "Error loading path: " + ex.Message, "PathMaker",
-                                                   System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-                }
+        void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "Path":
+                    //PathContainer.UpdateLayout();
+                    break;
             }
         }
 
@@ -85,7 +72,7 @@ namespace PathMaker
                 Height = settings.MainWndHeight;
                 Width = settings.MainWndWidth;
                 WindowState = settings.MainWndState;
-                //TopPanel.ItemHeight = Settings.TopPanelHeight;
+                TopPanel.ItemHeight = Settings.TopPanelHeight;
 
                 ViewModel.LoadSettings(settings);
             }
@@ -106,7 +93,7 @@ namespace PathMaker
 
                 Settings.MainWndHeight = Height;
                 Settings.MainWndWidth = Width;
-                //Settings.TopPanelHeight = TopPanel.ItemHeight;
+                Settings.TopPanelHeight = TopPanel.ItemHeight;
 
                 ViewModel.SaveSettings(Settings);
                 Properties.Settings.Default.Save();
@@ -174,7 +161,7 @@ namespace PathMaker
 
             if (Math.Abs(((double)(int)Math.Abs(dValue)) - Math.Abs(dValue)) < 0.0001)
             {
-                dValue = Math.Round(dValue);
+                dValue = (int)dValue;
             }
 
             //System.Diagnostics.Trace.WriteLine(String.Format("STLD {0} {1}", scaleValue, dValue));
@@ -226,14 +213,13 @@ namespace PathMaker
                 double dValue = 0;
 
                 Double.TryParse(tb.Text, out dValue);
-                double change = e.Delta / 120;
+                int change = e.Delta / 120;
 
-                dValue += ( 0.5 * change );
+                dValue += change;
 
                 dValue = Math.Max(0, dValue);
 
                 tb.Text = dValue.ToString();
-                tb.GetBindingExpression(TextBox.TextProperty).UpdateSource();
             }
             catch (Exception ex)
             {
@@ -242,7 +228,7 @@ namespace PathMaker
             }
         }
 
-        private void UDoubleBox_LostFocus(object sender, RoutedEventArgs e)
+        private void UDoubleBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (DesignerProperties.GetIsInDesignMode(this))
                 return;
@@ -256,18 +242,13 @@ namespace PathMaker
                     throw new Exception("Sender is not TextBox");
                 }
 
-                double dValue = 0;
+                double dValue = 1;
 
-                if (Double.TryParse(tb.Text, out dValue))
+                if (!Double.TryParse(tb.Text, out dValue) || dValue < 0)
                 {
-                    if (dValue < 0)
-                    {
-                        tb.Text = "1";
-                    }
-                }
-                else
-                {
-                    tb.Text = "1";
+                    dValue = Math.Max(0, dValue);
+
+                    tb.Text = dValue.ToString();
                 }
             }
             catch (Exception ex)
@@ -275,110 +256,6 @@ namespace PathMaker
                 StatusBar.Items.Clear();
                 StatusBar.Items.Add(ex.Message);
             }
-        }
-
-        private void Window_Drop(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                var fileName = ((string[])e.Data.GetData(DataFormats.FileDrop)).FirstOrDefault();
-
-                ViewModel.LoadFile(fileName);
-            }
-        }
-
-        private void Window_DragOver(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                var fileName = ((string[])e.Data.GetData(DataFormats.FileDrop)).FirstOrDefault();
-
-                if (System.IO.File.Exists(fileName))
-                    e.Effects = DragDropEffects.Copy;
-            }
-        }
-
-        private void CopyImage_Click(object sender, RoutedEventArgs e)
-        {
-            //var image = new Image();
-            var interopbitmap = Clipboard.GetImage() as InteropBitmap;
-            //_img.Source = BitmapHandling.ImageFromClipboardDib();
-            //PathContainer.Content = image;
-
-            int w = 0;
-
-            //image.Measure(new Size(image.Width, image.Height));
-            //image.Arrange(new Rect(new Size(image.Width, image.Height)));
-            //image.UpdateLayout();
-            //PathContainer.Measure(new Size(PathContainer.Width, PathContainer.Height));
-            //PathContainer.Arrange(new Rect(new Size(PathContainer.Width, PathContainer.Height)));
-            //PathContainer.UpdateLayout();
-            //PathContainer.Content = BitmapHandling.GetBitmapSourceFromClipboard();
-
-
-            //ImageSource icon = new ImageSource();
-
-            /*
-            var tfm = PathContainer.RenderTransform;
-            var img = ViewModel.CreateImage(tfm);
-
-            Clipboard.SetImage(img);
-//            */
-
-            /*
-            var rcBounds = ViewModel.Path.Data.GetRenderBounds(ViewModel.GetPen());
-
-            var tfm = PathContainer.RenderTransform;
-
-            if (null != tfm)
-            {
-                rcBounds = tfm.TransformBounds(rcBounds);
-            }
-
-            int pxWidth = (int)Math.Round (rcBounds.Width);
-            int pxHeight = (int)Math.Round(rcBounds.Height);
-
-            RenderTargetBitmap rtb = new RenderTargetBitmap(pxWidth, pxHeight, 96, 96, PixelFormats.Pbgra32);
-
-            PathContainer.Background = Brushes.Transparent;
-
-            rtb.Render(PathContainer);
-
-            Clipboard.SetImage(BitmapFrame.Create(rtb));
-//            */
-
-            /*
-            var path = ViewModel.CreatePath();
-
-            var tfm = PathContainer.RenderTransform;
-            var rcUnscaled = path.Data.GetRenderBounds(ViewModel.GetPen());
-            var rcScaled = tfm.TransformBounds(rcUnscaled);
-
-            int pxWidth = (int)Math.Round(rcScaled.Width);
-            int pxHeight = (int)Math.Round(rcScaled.Height);
-
-            Canvas canvas = new Canvas();
-
-            canvas.Width = pxWidth;
-            canvas.Height = pxHeight;
-            canvas.Margin = new Thickness(0);
-            canvas.Background = Brushes.Transparent;
-
-            //canvas.Measure(new Size(canvas.Width, canvas.Height));
-            //canvas.Arrange(new Rect(new Size(canvas.Width, canvas.Height)));
-
-            canvas.Children.Add(path);
-
-            RenderTargetBitmap rtb = new RenderTargetBitmap(pxWidth, pxHeight, 96, 96, PixelFormats.Pbgra32);
-
-            rtb.Render(canvas);
-
-            var image = new PngBitmapEncoder();
-
-            image.Frames.Add(BitmapFrame.Create(rtb));
-
-            int w = 0;
-            */
         }
     }
 }
