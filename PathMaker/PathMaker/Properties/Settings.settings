@@ -26,5 +26,8 @@
     <Setting Name="TopPanelHeight" Type="System.Windows.GridLength" Scope="User">
       <Value Profile="(Default)">200</Value>
     </Setting>
+    <Setting Name="IsGridVisible" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

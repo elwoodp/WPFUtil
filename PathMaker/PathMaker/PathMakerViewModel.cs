@@ -51,10 +51,11 @@ namespace PathMaker
 
             //PathText = "M 2,0 L 0,2 L 2,5 L 0,8 L 2,10 L 5,8 L 8,10 L 10,8 L 8,5 L 10,2 L 8,0 L 5,2 Z";
 #if DEBUG
-            PathText = FatX_10x10;
+            PathText = LeftBevelBezier12x22;
 #endif
         }
 
+        public static readonly String LeftBevelBezier12x22 = "M 0,21.5 C 4,21.5 4,0 12,0.5";
         public static readonly String FatX_8x8 = "M 2,0 L 0,2 L 2,4 L 0,6 L 2,8 L 4,6 L 6,8 L 8,6 L 6,4 L 8,2 L 6,0 L 4,2 Z";
         public static readonly String FatX_10x10 = "M 2,0 L 0,2 L 3,5 L 0,8 L 2,10 L 5,7 L 8,10 L 10,8 L 7,5 L 10,2 L 8,0 L 5,3 Z";
         public static readonly String ThinX_6x6 = "M 1,0 L 0,1 L 2,3 L 0,5 L 1,6 L 3,4 L 5,6 L 6,5 L 4,3 L 6,1 L 5,0 L 3,2 Z";
@@ -355,10 +356,10 @@ namespace PathMaker
             List<PathFigure> grid = new List<PathFigure>();
             PathSegment[] end = new PathSegment[1];
 
-            double xMin = Math.Floor(rect.Left - 1);
-            double yMin = Math.Floor(rect.Top - 1);
-            double xMax = Math.Ceiling(rect.Right + 1);
-            double yMax = Math.Ceiling(rect.Bottom + 1);
+            double xMin = Math.Floor(rect.Left) - 1;
+            double yMin = Math.Floor(rect.Top) - 1;
+            double xMax = Math.Ceiling(rect.Right) + 1;
+            double yMax = Math.Ceiling(rect.Bottom) + 1;
 
             xMin -= xMin % spacing;
             yMin -= yMin % spacing;
@@ -508,8 +509,11 @@ namespace PathMaker
 
                 var rect = geometry.GetRenderBounds(new Pen(GetStrokeBrush(), StrokeThickness));
 
-                OffsetTransform = new TranslateTransform(Math.Abs(rect.Left), Math.Abs(rect.Top));
-                RequiredOffset = new System.Windows.Size(Math.Abs(rect.Left), Math.Abs(rect.Top));
+                double xMin = Math.Abs(Math.Floor(rect.Left) - 1);
+                double yMin = Math.Abs(Math.Floor(rect.Top) - 1);
+
+                OffsetTransform = new TranslateTransform(xMin, yMin);
+                RequiredOffset = new System.Windows.Size(xMin, yMin);
 
                 PathActualBounds = rect;
 
@@ -527,6 +531,7 @@ namespace PathMaker
             FillColor = NamedColors.Where(nc => nc.Color == settings.FillColor).FirstOrDefault();
             StrokeThickness = settings.StrokeThickness;
             Scale = settings.Scale;
+            IsGridVisible = settings.IsGridVisible;
 
             if (Math.Abs(((double)(int)Math.Abs(Scale)) - Math.Abs(Scale)) < 0.0001)
             {
@@ -541,6 +546,7 @@ namespace PathMaker
             settings.FillColor = FillColor.Color;
             settings.StrokeThickness = StrokeThickness;
             settings.Scale = Scale;
+            settings.IsGridVisible = IsGridVisible;
         }
         #endregion Public Methods
 

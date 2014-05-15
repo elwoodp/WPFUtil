@@ -9,7 +9,7 @@
     Height="400" 
     Width="660" 
     ResizeMode="CanResizeWithGrip"
-    MinWidth="660"
+    MinWidth="600"
     MinHeight="300"
     Closed="Window_Closed"
     Background="#FFA3C3EC"
@@ -52,6 +52,10 @@
                       />
         </ContextMenu>
 
+        <Style x:Key="ControlPanelLabeledControl" TargetType="{x:Type StackPanel}">
+            <Setter Property="Orientation" Value="Horizontal" />
+        </Style>
+        
         <Style TargetType="Button">
             <Setter Property="Background" Value="{StaticResource ButtonInertBrush}" />
             <Style.Triggers>
@@ -188,8 +192,8 @@
             ResizeDirection="Rows"
             HorizontalAlignment="Stretch"
             BorderThickness="0,1,0,1"
-            Background="{DynamicResource LightGrayBrush}" 
-            BorderBrush="{DynamicResource MediumGrayBrush}"
+            Background="SlateGray" 
+            BorderBrush="DarkSlateGray"
             IsEnabled="True"
             />
 
@@ -220,34 +224,43 @@
                 Orientation="Vertical"
                 Height="52"
                 >
-                <StackPanel
-                    Name="ControlPanelRow1"
+                <WrapPanel
                     Orientation="Horizontal"
                     Margin="{StaticResource SetterRowPanelMargin}"
                     HorizontalAlignment="Stretch"
                     >
-                    <TextBlock Text="Stroke:" Margin="{StaticResource SetterLabelMargin}" />
-                    <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding StrokeColor}" />
+                    <StackPanel Style="{StaticResource ControlPanelLabeledControl}">
+                        <TextBlock Text="Stroke:" Margin="{StaticResource SetterLabelMargin}" />
+                        <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding StrokeColor}" />
+                    </StackPanel>
 
-                    <TextBlock Text="Fill:" Margin="{StaticResource SetterLabelMargin}" />
-                    <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding FillColor}" />
+                    <StackPanel Style="{StaticResource ControlPanelLabeledControl}">
+                        <TextBlock Text="Fill:" Margin="{StaticResource SetterLabelMargin}" />
+                        <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding FillColor}" />
+                    </StackPanel>
 
-                    <TextBlock Text="Line:" Margin="{StaticResource SetterLabelMargin}" />
-                    <TextBox Text="{Binding StrokeThickness, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                MouseWheel="UDoubleBox_MouseWheel"
-                                LostFocus="UDoubleBox_LostFocus"
-                                Style="{StaticResource NumberBoxStyle}"
-                                />
+                    <StackPanel Style="{StaticResource ControlPanelLabeledControl}">
+                        <TextBlock Text="Line:" Margin="{StaticResource SetterLabelMargin}" />
+                        <TextBox
+                            Text="{Binding StrokeThickness, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                            MouseWheel="UDoubleBox_MouseWheel"
+                            LostFocus="UDoubleBox_LostFocus"
+                            Style="{StaticResource NumberBoxStyle}"
+                            />
+                    </StackPanel>
 
-                    <TextBlock Text="Scale:" Margin="{StaticResource SetterLabelMargin}" />
-                    <TextBox 
+                    <StackPanel Style="{StaticResource ControlPanelLabeledControl}">
+                        <TextBlock Text="Scale:" Margin="{StaticResource SetterLabelMargin}" />
+                        <TextBox 
                         Text="{Binding Scale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                         MouseWheel="ScaleText_MouseWheel"
                         GotFocus="NumberText_GotFocus"
                         Style="{StaticResource NumberBoxStyle}"
                         />
+                    </StackPanel>
+
                     <CheckBox Content="Show Grid" Margin="2,0,2,0" IsChecked="{Binding IsGridVisible}" />
-                </StackPanel>
+                </WrapPanel>
                 </StackPanel>
                 <DockPanel
                     HorizontalAlignment="Stretch"

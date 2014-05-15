@@ -118,5 +118,17 @@ namespace PathMaker.Properties {
                 this["TopPanelHeight"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool IsGridVisible {
+            get {
+                return ((bool)(this["IsGridVisible"]));
+            }
+            set {
+                this["IsGridVisible"] = value;
+            }
+        }
     }
 }
