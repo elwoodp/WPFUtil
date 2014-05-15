@@ -7,9 +7,9 @@
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     Title="{Binding AppTitle}" 
     Height="400" 
-    Width="600" 
+    Width="660" 
     ResizeMode="CanResizeWithGrip"
-    MinWidth="600"
+    MinWidth="660"
     MinHeight="300"
     Closed="Window_Closed"
     Background="#FFA3C3EC"
@@ -26,6 +26,13 @@
         <SolidColorBrush x:Key="MediumGrayBrush" Color="#f666" />
         <SolidColorBrush x:Key="LightGrayBrush" Color="#fbbb" />
         <SolidColorBrush x:Key="PaleGrayBrush" Color="#feee" />
+
+        <swm:TransformGroup x:Key="PathTransform">
+            <swm:TranslateTransform X="{Binding RequiredOffset.Width}" Y="{Binding RequiredOffset.Height}" />
+            <swm:ScaleTransform ScaleX="{Binding Scale}" ScaleY="{Binding Scale}" />
+        </swm:TransformGroup>
+
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
         <LinearGradientBrush x:Key="ButtonInertBrush" StartPoint="0,0" EndPoint="0,1">
             <GradientStop Color="#fccc" Offset="0" />
@@ -109,11 +116,11 @@
         >
         <Grid.RowDefinitions>
             <!-- Path display -->
-            <RowDefinition Height="*" MinHeight="52" />
+            <RowDefinition Name="TopPanel" Height="*" MinHeight="52" />
             <!-- GridSplitter -->
             <RowDefinition Height="6" />
             <!-- Text box-->
-            <RowDefinition Height="*" MinHeight="52" />
+            <RowDefinition Name="TextBoxCell" Height="*" MinHeight="52" />
             <!-- Controls: Colors, line, etc. -->
             <RowDefinition Height="Auto" />
             <!-- Controls: Colors, line, etc. -->
@@ -123,7 +130,6 @@
         <!-- Path display panel -->
         <StackPanel
             Grid.Row="0"
-            Name="TopPanel"
             Background="White"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch"
@@ -137,7 +143,7 @@
                 Padding="4"
                 Background="{StaticResource PaleGrayBrush}"
                 >
-                <ContentControl
+                <!--ContentControl
                     Name="PathContainer"
                     Content="{Binding Path}"
                     RenderTransform="{StaticResource ScaleTransform}"
@@ -146,7 +152,33 @@
                     BorderBrush="Black"
                     BorderThickness="1"
                     Background="Transparent"
-                    />
+                    /-->
+                    <Canvas>
+                        <Path
+                            Name="GridPath"
+                            Stroke="Silver"
+                            StrokeThickness="{Binding GridStrokeThickness}"
+                            RenderTransform="{StaticResource PathTransform}"
+                            Data="{Binding GridGeometry}"
+                            Visibility="{Binding IsGridVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            />
+                        <Path
+                            Name="GridZeroPath"
+                            Stroke="Gray"
+                            StrokeThickness="{Binding GridStrokeThickness}"
+                            RenderTransform="{StaticResource PathTransform}"
+                            Data="{Binding GridZeroGeometry}"
+                            Visibility="{Binding IsGridVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            />
+                        <Path
+                            Name="UserPath"
+                            Data="{Binding Geometry}"
+                            Stroke="{Binding StrokeColor.Brush}"
+                            Fill="{Binding FillColor.Brush}"
+                            StrokeThickness="{Binding StrokeThickness}"
+                            RenderTransform="{StaticResource PathTransform}"
+                            />
+                    </Canvas>
             </ContentControl>
         </StackPanel>
 
@@ -182,39 +214,40 @@
             HorizontalAlignment="Stretch"
             Grid.Row="3"
             >
+            <StackPanel
+                Grid.Row="0"
+                Name="ControlPanelRows"
+                Orientation="Vertical"
+                Height="52"
+                >
                 <StackPanel
-                    Grid.Row="0"
-                    Name="ControlPanelRows"
-                    Orientation="Vertical"
-                    Height="52"
+                    Name="ControlPanelRow1"
+                    Orientation="Horizontal"
+                    Margin="{StaticResource SetterRowPanelMargin}"
+                    HorizontalAlignment="Stretch"
                     >
-                    <StackPanel
-                        Name="ControlPanelRow1"
-                        Orientation="Horizontal"
-                        Margin="{StaticResource SetterRowPanelMargin}"
-                        HorizontalAlignment="Stretch"
-                        >
-                        <TextBlock Text="Stroke:" Margin="{StaticResource SetterLabelMargin}" VerticalAlignment="Center" />
-                        <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding StrokeColor}" />
+                    <TextBlock Text="Stroke:" Margin="{StaticResource SetterLabelMargin}" />
+                    <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding StrokeColor}" />
 
-                        <TextBlock Text="Fill:" Margin="{StaticResource SetterLabelMargin}" VerticalAlignment="Center" />
-                        <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding FillColor}" />
+                    <TextBlock Text="Fill:" Margin="{StaticResource SetterLabelMargin}" />
+                    <ComboBox Style="{StaticResource ColorList}" SelectedItem="{Binding FillColor}" />
 
-                        <TextBlock Text="Line:" Margin="{StaticResource SetterLabelMargin}" VerticalAlignment="Center" />
-                        <TextBox Text="{Binding StrokeThickness, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                 MouseWheel="UDoubleBox_MouseWheel"
-                                 LostFocus="UDoubleBox_LostFocus"
-                                 Style="{StaticResource NumberBoxStyle}"
-                                 />
+                    <TextBlock Text="Line:" Margin="{StaticResource SetterLabelMargin}" />
+                    <TextBox Text="{Binding StrokeThickness, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                MouseWheel="UDoubleBox_MouseWheel"
+                                LostFocus="UDoubleBox_LostFocus"
+                                Style="{StaticResource NumberBoxStyle}"
+                                />
 
-                        <TextBlock Text="Scale:" Margin="{StaticResource SetterLabelMargin}" VerticalAlignment="Center" />
-                        <TextBox 
-                            Text="{Binding Scale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                            MouseWheel="ScaleText_MouseWheel"
-                            GotFocus="NumberText_GotFocus"
-                            Style="{StaticResource NumberBoxStyle}"
-                            />
-                    </StackPanel>
+                    <TextBlock Text="Scale:" Margin="{StaticResource SetterLabelMargin}" />
+                    <TextBox 
+                        Text="{Binding Scale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                        MouseWheel="ScaleText_MouseWheel"
+                        GotFocus="NumberText_GotFocus"
+                        Style="{StaticResource NumberBoxStyle}"
+                        />
+                    <CheckBox Content="Show Grid" Margin="2,0,2,0" IsChecked="{Binding IsGridVisible}" />
+                </StackPanel>
                 </StackPanel>
                 <DockPanel
                     HorizontalAlignment="Stretch"

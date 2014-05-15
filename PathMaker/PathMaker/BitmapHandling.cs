@@ -35,7 +35,7 @@ namespace PathMaker
                                                                      IntPtr.Zero, Int32Rect.Empty,
                                                                      BitmapSizeOptions.FromEmptyOptions());
                     }
-                    catch (Exception ex)
+                    catch (Exception/* ex*/)
                     {
                     }
                 }

@@ -206,6 +206,17 @@ namespace PathMaker
             }
         }
 
+        private bool _isGridVisible = false;
+        public bool IsGridVisible
+        {
+            get { return _isGridVisible; }
+            set
+            {
+                _isGridVisible = value;
+                OnPropertyChanged("IsGridVisible");
+            }
+        }
+
         double _scale = 1;
         public double Scale
         {
@@ -241,22 +252,60 @@ namespace PathMaker
         }
         */
 
-        private Brush GetFillBrush()
+        private System.Windows.Size _requiredOffset = new System.Windows.Size();
+        public System.Windows.Size RequiredOffset
         {
-            if (null == FillColor)
+            get { return _requiredOffset; }
+            set
             {
-                return Brushes.Transparent;
+                _requiredOffset = value;
+                OnPropertyChanged("RequiredOffset");
             }
-            return FillColor.Brush;
         }
 
-        private Brush GetStrokeBrush()
+        private Transform _offsetTransform = null;
+        public Transform OffsetTransform
         {
-            if (null == StrokeColor)
+            get { return _offsetTransform; }
+            set
             {
-                return Brushes.Black;
+                _offsetTransform = value;
+                OnPropertyChanged("OffsetTransform");
             }
-            return StrokeColor.Brush;
+        }
+
+        private Geometry _geometry;
+        public Geometry Geometry
+        {
+            get { return _geometry; }
+            set
+            {
+                _geometry = value;
+                UpdateGridGeometry();
+                OnPropertyChanged("Geometry");
+            }
+        }
+
+        private Geometry _gridGeometry;
+        public Geometry GridGeometry
+        {
+            get { return _gridGeometry; }
+            protected set
+            {
+                _gridGeometry = value;
+                OnPropertyChanged("GridGeometry");
+            }
+        }
+
+        private Geometry _gridZeroGeometry;
+        public Geometry GridZeroGeometry
+        {
+            get { return _gridZeroGeometry; }
+            protected set
+            {
+                _gridZeroGeometry = value;
+                OnPropertyChanged("GridZeroGeometry");
+            }
         }
 
         protected ICommand CreatePathCommand()
@@ -278,7 +327,7 @@ namespace PathMaker
 
             return cmd;
         }
-
+        
         private ICommand _displayPathCommand;
         public ICommand DisplayPathCommand
         {
@@ -293,6 +342,84 @@ namespace PathMaker
             }
         }
         #endregion Public Properties
+
+        #region Graphics Methods
+        protected void UpdateGridGeometry()
+        {
+            double spacing = 1;
+            if (Scale < 5)
+                spacing = Math.Round(10 / Scale);
+
+            var rect = PathActualBounds;
+
+            List<PathFigure> grid = new List<PathFigure>();
+            PathSegment[] end = new PathSegment[1];
+
+            double xMin = Math.Floor(rect.Left - 1);
+            double yMin = Math.Floor(rect.Top - 1);
+            double xMax = Math.Ceiling(rect.Right + 1);
+            double yMax = Math.Ceiling(rect.Bottom + 1);
+
+            xMin -= xMin % spacing;
+            yMin -= yMin % spacing;
+
+            for (double x = xMin; x <= xMax; x += spacing)
+            {
+                end[0] = new LineSegment(new System.Windows.Point(x, yMax), true);
+                grid.Add(new PathFigure(new System.Windows.Point(x, yMin), end, false));
+            }
+
+            for (double y = yMin; y <= yMax; y += spacing)
+            {
+                end[0] = new LineSegment(new System.Windows.Point(xMax, y), true);
+                grid.Add(new PathFigure(new System.Windows.Point(xMin, y), end, false));
+            }
+
+            List<PathFigure> gridZero = new List<PathFigure>();
+
+            end[0] = new LineSegment(new System.Windows.Point(0, yMax), true);
+            gridZero.Add(new PathFigure(new System.Windows.Point(0, yMin), end, false));
+            end[0] = new LineSegment(new System.Windows.Point(xMax, 0), true);
+            gridZero.Add(new PathFigure(new System.Windows.Point(xMin, 0), end, false));
+
+            double lenMarker = 10 / Scale;
+            PathSegment[] triangle = new PathSegment[2];
+
+            triangle[0] = new LineSegment(new System.Windows.Point(0, yMax), true);
+            triangle[1] = new LineSegment(new System.Windows.Point(lenMarker / 2, yMax + lenMarker), true);
+
+            gridZero.Add(new PathFigure(new System.Windows.Point(-(lenMarker / 2), yMax + lenMarker), triangle, true));
+
+            triangle[0] = new LineSegment(new System.Windows.Point(xMax, 0), true);
+            triangle[1] = new LineSegment(new System.Windows.Point(xMax + lenMarker, lenMarker / 2), true);
+
+            gridZero.Add(new PathFigure(new System.Windows.Point(xMax + lenMarker, -(lenMarker / 2)), triangle, true));
+
+            GridStrokeThickness = 1.0 / Scale;
+
+            GridZeroGeometry = new PathGeometry(gridZero);
+            GridGeometry = new PathGeometry(grid);
+        }
+
+        private Brush GetFillBrush()
+        {
+            if (null == FillColor)
+            {
+                return Brushes.Transparent;
+            }
+            return FillColor.Brush;
+        }
+
+        private Brush GetStrokeBrush()
+        {
+            if (null == StrokeColor)
+            {
+                return Brushes.Black;
+            }
+            return StrokeColor.Brush;
+        }
+
+        #endregion Graphics Methods
 
         #region Public Methods
         public void LoadFile(string fileName)
@@ -330,7 +457,13 @@ namespace PathMaker
 
         public BitmapSource CreateImage(Transform tfm)
         {
-            var path = CreatePath();
+            var path = new Path()
+            {
+                Data = Geometry.Parse(PathText),
+                StrokeThickness = StrokeThickness,
+                Stroke = StrokeColor.Brush,
+                Fill = FillColor.Brush
+            };
 
             var rcBounds = path.Data.GetRenderBounds(GetPen());
 
@@ -350,25 +483,6 @@ namespace PathMaker
 
             rtb.Render(path);
 
-            /*
-            var canvas = new System.Windows.Controls.Canvas();
-
-            canvas.Width = pxWidth;
-            canvas.Height = pxHeight;
-            canvas.Margin = new System.Windows.Thickness(0);
-            canvas.Background = Brushes.Transparent;
-
-            canvas.Measure(new Size(canvas.Width, canvas.Height));
-            canvas.Arrange(new Rect(new Size(canvas.Width, canvas.Height)));
-            canvas.UpdateLayout();
-
-            canvas.Children.Add(path);
-
-            canvas.RenderTransform = tfm;
-
-            rtb.Render(canvas);
-            */
-
             return BitmapFrame.Create(rtb);
         }
 
@@ -379,60 +493,32 @@ namespace PathMaker
 
         public void UpdatePath()
         {
-            PathErrorText = "";
-            var path = CreatePath();
-            if (null != path)
-            {
-                Path = path;
-                PathActualBounds = Path.Data.GetRenderBounds(GetPen());
-            }
-        }
-
-        public Path CreatePath()
-        {
             try
             {
-                var path = new Path()
+                PathErrorText = "";
+
+                /*var path = new Path()
                 {
                     Data = Geometry.Parse(PathText),
                     Fill = GetFillBrush(),
                     Stroke = GetStrokeBrush(),
-                    StrokeThickness = StrokeThickness
-                };
+                    StrokeThickness = (int)StrokeThickness
+                };*/
+                var geometry = PathGeometry.Parse(PathText);
 
-                /*
-                var tfmScale = new ScaleTransform(Scale, Scale, 0, 0);
-                var tfmOffset = new TranslateTransform(-(rect.Left + (rect.Width / 2)), -(rect.Top + (rect.Height / 2)));
+                var rect = geometry.GetRenderBounds(new Pen(GetStrokeBrush(), StrokeThickness));
 
-                var tfmG = new TransformGroup();
+                OffsetTransform = new TranslateTransform(Math.Abs(rect.Left), Math.Abs(rect.Top));
+                RequiredOffset = new System.Windows.Size(Math.Abs(rect.Left), Math.Abs(rect.Top));
 
-                tfmG.Children.Add(tfmOffset);
-                tfmG.Children.Add(tfmScale);
+                PathActualBounds = rect;
 
-                RenderTransform = tfmG;
-                */
-
-                /*
-                var tfmScale = new ScaleTransform(Scale, Scale, 0, 0);
-                var tfmG = new TransformGroup();
-                tfmG.Children.Add(tfmScale);
-                tfmG.Children.Add(tfmTrans);
-                */
-
-                var rect = path.Data.GetRenderBounds(GetPen());
-
-                var tfmTrans = new TranslateTransform(Math.Abs(rect.Left), Math.Abs(rect.Top));
-
-                //path.RenderTransform = tfmTrans;
-
-                return path;
+                Geometry = geometry;
             }
             catch (Exception ex)
             {
                 PathErrorText = ex.Message;
             }
-
-            return null;
         }
 
         internal void LoadSettings(PathMaker.Properties.Settings settings)

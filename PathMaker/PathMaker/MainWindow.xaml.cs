@@ -85,7 +85,7 @@ namespace PathMaker
                 Height = settings.MainWndHeight;
                 Width = settings.MainWndWidth;
                 WindowState = settings.MainWndState;
-                //TopPanel.ItemHeight = Settings.TopPanelHeight;
+                TopPanel.Height = Settings.TopPanelHeight;
 
                 ViewModel.LoadSettings(settings);
             }
@@ -106,7 +106,7 @@ namespace PathMaker
 
                 Settings.MainWndHeight = Height;
                 Settings.MainWndWidth = Width;
-                //Settings.TopPanelHeight = TopPanel.ItemHeight;
+                Settings.TopPanelHeight = TopPanel.Height;
 
                 ViewModel.SaveSettings(Settings);
                 Properties.Settings.Default.Save();
@@ -305,7 +305,7 @@ namespace PathMaker
             //_img.Source = BitmapHandling.ImageFromClipboardDib();
             //PathContainer.Content = image;
 
-            int w = 0;
+            //int w = 0;
 
             //image.Measure(new Size(image.Width, image.Height));
             //image.Arrange(new Rect(new Size(image.Width, image.Height)));

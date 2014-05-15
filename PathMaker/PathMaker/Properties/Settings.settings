@@ -24,7 +24,7 @@
       <Value Profile="(Default)">Normal</Value>
     </Setting>
     <Setting Name="TopPanelHeight" Type="System.Windows.GridLength" Scope="User">
-      <Value Profile="(Default)">100</Value>
+      <Value Profile="(Default)">200</Value>
     </Setting>
   </Settings>
 </SettingsFile>
