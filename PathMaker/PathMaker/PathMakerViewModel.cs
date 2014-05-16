@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Xml;
 
 namespace PathMaker
 {
@@ -49,12 +50,12 @@ namespace PathMaker
 
             AppTitle = "PathMaker";
 
-            //PathText = "M 2,0 L 0,2 L 2,5 L 0,8 L 2,10 L 5,8 L 8,10 L 10,8 L 8,5 L 10,2 L 8,0 L 5,2 Z";
 #if DEBUG
-            PathText = LeftBevelBezier12x22;
+            PathText = CornerAndLeftBevelBezier12x22;
 #endif
         }
 
+        public static readonly String CornerAndLeftBevelBezier12x22 = "M -2.5,26 \nL -2.5,24 A 3,3 0 0 1 0,21.5 \nC 4,21.5 4,0 12,0.5 ";
         public static readonly String LeftBevelBezier12x22 = "M 0,21.5 C 4,21.5 4,0 12,0.5";
         public static readonly String FatX_8x8 = "M 2,0 L 0,2 L 2,4 L 0,6 L 2,8 L 4,6 L 6,8 L 8,6 L 6,4 L 8,2 L 6,0 L 4,2 Z";
         public static readonly String FatX_10x10 = "M 2,0 L 0,2 L 3,5 L 0,8 L 2,10 L 5,7 L 8,10 L 10,8 L 7,5 L 10,2 L 8,0 L 5,3 Z";
@@ -114,6 +115,10 @@ namespace PathMaker
             get { return _pathText; }
             set
             {
+                if (!String.Equals(_pathText, value))
+                {
+                    IsDirty = true;
+                }
                 _pathText = value ?? "";
                 OnPropertyChanged("PathText");
             }
@@ -309,37 +314,31 @@ namespace PathMaker
             }
         }
 
-        protected ICommand CreatePathCommand()
+        private bool _isDirty = false;
+        public bool IsDirty
         {
-            var cmd = new RoutedUICommand("DisplayPath", "Display Path", typeof(MainWindow));
-
-            var binding = new CommandBinding(cmd,
-                (s, e) =>
-                {
-                    UpdatePath();
-                },
-                (s, e) =>
-                {
-                    e.CanExecute = !String.IsNullOrWhiteSpace(PathText);
-                    e.Handled = true;
-                });
-
-            CommandManager.RegisterClassCommandBinding(typeof(MainWindow), binding);
-
-            return cmd;
-        }
-        
-        private ICommand _displayPathCommand;
-        public ICommand DisplayPathCommand
-        {
-            get
+            get { return _isDirty; }
+            set
             {
-                if (null == _displayPathCommand)
+                bool bChanging = _isDirty != value;
+                _isDirty = value;
+                if (bChanging)
                 {
-                    _displayPathCommand = CreatePathCommand();
+                    UpdateAppTitle();
                 }
+                OnPropertyChanged("IsDirty");
+            }
+        }
 
-                return _displayPathCommand;
+        private string _fileName;
+        public String FileName
+        {
+            get { return _fileName; }
+            set
+            {
+                _fileName = value;
+                UpdateAppTitle();
+                OnPropertyChanged("FileName");
             }
         }
         #endregion Public Properties
@@ -427,9 +426,53 @@ namespace PathMaker
         {
             try
             {
-                PathText = System.IO.File.ReadAllText(fileName);
+                var xml = new XmlDocument();
+                xml.LoadXml(System.IO.File.ReadAllText(fileName));
 
-                AppTitle = System.IO.Path.GetFileName(fileName) + " - PathMaker";
+                var nodes = xml.GetElementsByTagName("Path");
+
+                if ( nodes.Count == 0 )
+                {
+                    throw new Exception("File contains no Path tag.");
+                }
+
+                var tagPath = nodes[0];
+ 
+                var attrData = tagPath.Attributes.GetNamedItem("Data");
+                var attrStrokeThickness = tagPath.Attributes.GetNamedItem("StrokeThickness");
+                var attrStroke = tagPath.Attributes.GetNamedItem("Stroke");
+                var attrFill = tagPath.Attributes.GetNamedItem("Fill");
+
+                if (null == attrData)
+                {
+                    throw new Exception("Path tag contains no Data attribute.");
+                }
+
+                StrokeThickness = 1;
+                if (null != attrStrokeThickness)
+                {
+                    double th;
+                    if ( double.TryParse(attrStrokeThickness.Value, out th))
+                    {
+                        StrokeThickness = th;
+                    }
+                }
+
+                StrokeColor = NamedColors.Where(nc => nc.Color == Colors.Black).FirstOrDefault();
+                if (null != attrStroke)
+                {
+                    StrokeColor = NamedColors.Where(nc => nc.Name == attrStroke.Value).FirstOrDefault() ?? StrokeColor;
+                }
+
+                FillColor = NamedColors.Where(nc => nc.Color == Colors.Transparent).FirstOrDefault();
+                if (null != attrFill)
+                {
+                    FillColor = NamedColors.Where(nc => nc.Name == attrFill.Value).FirstOrDefault() ?? FillColor;
+                }
+
+                IsDirty = false;
+
+                FileName = fileName;
 
                 UpdatePath();
             }
@@ -438,6 +481,39 @@ namespace PathMaker
                 System.Windows.MessageBox.Show(App.Current.MainWindow, "Error loading path: " + ex.Message, "PathMaker",
                                                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             }
+        }
+
+        private void UpdateAppTitle()
+        {
+            var dirtymark = (IsDirty) ? "*" : "";
+            AppTitle = System.IO.Path.GetFileName(FileName) + dirtymark  + " - PathMaker";
+        }
+
+        public String ToXAML(bool bIncludeGrid)
+        {
+            String xml = "";
+            
+            xml += String.Format("<Path Data=\"{0}\" StrokeThickness=\"{1}\" Stroke=\"{2}\" Fill=\"{3}\" />",
+                                 PathText, StrokeThickness, StrokeColor.Name, FillColor.Name);
+
+            return xml;
+        }
+
+        public void SaveFile(String fileName)
+        {
+            if (String.IsNullOrEmpty(fileName))
+            {
+                fileName = FileName;
+            }
+
+            System.IO.File.WriteAllText(fileName, ToXAML(false));
+
+            if (!System.IO.Path.Equals(fileName, fileName))
+            {
+                FileName = fileName;
+            }
+            
+            IsDirty = false;
         }
 
         //  http://stackoverflow.com/a/1918890/424129
@@ -572,5 +648,67 @@ namespace PathMaker
                 _namedColors[i] = null;
             }
         }
+
+        #region Commands
+        protected ICommand CreatePathCommand()
+        {
+            var cmd = new RoutedUICommand("DisplayPath", "Display Path", typeof(MainWindow));
+
+            var binding = new CommandBinding(cmd,
+                (s, e) =>
+                {
+                    UpdatePath();
+                },
+                (s, e) =>
+                {
+                    e.CanExecute = !String.IsNullOrWhiteSpace(PathText);
+                    e.Handled = true;
+                });
+
+            CommandManager.RegisterClassCommandBinding(typeof(MainWindow), binding);
+
+            return cmd;
+        }
+
+        private ICommand _displayPathCommand;
+        public ICommand DisplayPathCommand
+        {
+            get { return _displayPathCommand ?? ( _displayPathCommand = CreatePathCommand() ); }
+        }
+
+        private ICommand _newPathCommand;
+        public ICommand NewPathCommand
+        {
+            get { return _newPathCommand ?? ( _newPathCommand = CreateNewPathCommand() ); }
+        }
+        protected ICommand CreateNewPathCommand()
+        {
+            var cmd = new RoutedUICommand("DisplayPath", "Display Path", typeof(MainWindow));
+
+            var binding = new CommandBinding(cmd,
+                (s, e) =>
+                {
+                    Clear();
+                },
+                (s, e) =>
+                {
+                    e.CanExecute = true;
+                    e.Handled = true;
+                });
+
+            CommandManager.RegisterClassCommandBinding(typeof(MainWindow), binding);
+
+            return cmd;
+        }
+
+        private static int _ct = 0;
+        public void Clear()
+        {
+            PathText = "";
+            UpdatePath();
+            IsDirty = false;
+            FileName = "New Path " + ++_ct;
+        }
+        #endregion Commands
     }
 }

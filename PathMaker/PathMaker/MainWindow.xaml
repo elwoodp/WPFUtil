@@ -45,7 +45,7 @@
             <GradientStop Color="#feee" Offset=".4" />
             <GradientStop Color="#faaa" Offset="1" />
         </LinearGradientBrush>
-        
+
         <ContextMenu x:Key="MainWindowContextMenu">
             <MenuItem Header="Copy Image"
                       Click="CopyImage_Click"
@@ -55,7 +55,7 @@
         <Style x:Key="ControlPanelLabeledControl" TargetType="{x:Type StackPanel}">
             <Setter Property="Orientation" Value="Horizontal" />
         </Style>
-        
+
         <Style TargetType="Button">
             <Setter Property="Background" Value="{StaticResource ButtonInertBrush}" />
             <Style.Triggers>
@@ -83,7 +83,7 @@
             <Setter Property="BorderBrush" Value="{StaticResource MediumGrayBrush}" />
             <Setter Property="Width" Value="52" />
         </Style>
-        
+
         <Style x:Key="ColorList" TargetType="ComboBox">
             <Setter Property="ItemsSource" Value="{Binding NamedColors}" />
             <Setter Property="Width" Value="165" />
@@ -119,6 +119,7 @@
         ContextMenu="{StaticResource MainWindowContextMenu}"
         >
         <Grid.RowDefinitions>
+            <RowDefinition Name="MenuPanel" Height="Auto" />
             <!-- Path display -->
             <RowDefinition Name="TopPanel" Height="*" MinHeight="52" />
             <!-- GridSplitter -->
@@ -130,10 +131,54 @@
             <!-- Controls: Colors, line, etc. -->
             <RowDefinition Height="22" />
         </Grid.RowDefinitions>
+        <DockPanel HorizontalAlignment="Stretch" 
+                   LastChildFill="False" 
+                   Margin="0,0,0,0" 
+                   VerticalAlignment="Top"
+                   Grid.Row="0"
+                   >
+            <Menu DockPanel.Dock="Top" 
+                  HorizontalAlignment="Stretch"
+                  >
+                <MenuItem Header="_File">
+                    <MenuItem Header="_New" 
+                              Command="{Binding NewPathCommand}"
+                              />
+                    <MenuItem Header="_Open" 
+                              IsCheckable="True"
+                              IsChecked="True"
+                              />
+                    <MenuItem Header="_Save" 
+                              IsEnabled="False"
+                              />
+                    <MenuItem Header="_Close" />
+                    <Separator />
+                    <MenuItem Header="_Recent"
+                              IsEnabled="True"
+                              >
+                        <MenuItem Header="Lunar Lunacy.boe"/>
+                        <MenuItem Header="Earth Moon Stars and Crapola.boe"/>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="_Exit" />
+                </MenuItem>
+            </Menu>
+            <ToolBarPanel
+                DockPanel.Dock="Bottom"
+                Orientation="Horizontal"
+                >
+                <ToolBar
+                    HorizontalAlignment="Stretch"
+                    >
+                    <Button
+                        Content="Whatever" />
+                </ToolBar>
+            </ToolBarPanel>
+        </DockPanel>
 
         <!-- Path display panel -->
         <StackPanel
-            Grid.Row="0"
+            Grid.Row="1"
             Background="White"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch"
@@ -157,8 +202,8 @@
                     BorderThickness="1"
                     Background="Transparent"
                     /-->
-                    <Canvas>
-                        <Path
+                <Canvas>
+                    <Path
                             Name="GridPath"
                             Stroke="Silver"
                             StrokeThickness="{Binding GridStrokeThickness}"
@@ -166,7 +211,7 @@
                             Data="{Binding GridGeometry}"
                             Visibility="{Binding IsGridVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                             />
-                        <Path
+                    <Path
                             Name="GridZeroPath"
                             Stroke="Gray"
                             StrokeThickness="{Binding GridStrokeThickness}"
@@ -174,7 +219,7 @@
                             Data="{Binding GridZeroGeometry}"
                             Visibility="{Binding IsGridVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                             />
-                        <Path
+                    <Path
                             Name="UserPath"
                             Data="{Binding Geometry}"
                             Stroke="{Binding StrokeColor.Brush}"
@@ -182,12 +227,12 @@
                             StrokeThickness="{Binding StrokeThickness}"
                             RenderTransform="{StaticResource PathTransform}"
                             />
-                    </Canvas>
+                </Canvas>
             </ContentControl>
         </StackPanel>
 
         <GridSplitter
-            Grid.Row="1" 
+            Grid.Row="2" 
             Height="6"
             ResizeDirection="Rows"
             HorizontalAlignment="Stretch"
@@ -200,7 +245,7 @@
         <TextBox 
             Height="Auto"
             Margin="0,0,0,0" 
-            Grid.Row="2"
+            Grid.Row="3"
             TextWrapping="Wrap" 
             Text="{Binding PathText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
             HorizontalAlignment="Stretch"
@@ -216,7 +261,7 @@
         <StackPanel
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch"
-            Grid.Row="3"
+            Grid.Row="4"
             >
             <StackPanel
                 Grid.Row="0"
@@ -261,15 +306,15 @@
 
                     <CheckBox Content="Show Grid" Margin="2,0,2,0" IsChecked="{Binding IsGridVisible}" />
                 </WrapPanel>
-                </StackPanel>
-                <DockPanel
+            </StackPanel>
+            <DockPanel
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Bottom"
                     Grid.Row="1"
                     Margin="0,1,0,0" 
                     Height="60"
                     >
-                    <Button
+                <Button
                         DockPanel.Dock="Left"
                         Command="{Binding DisplayPathCommand}"
                         HorizontalAlignment="Left"
@@ -278,7 +323,7 @@
                         Content="Show"
                         Height="22"
                         />
-                    <!-- 
+                <!-- 
                         Background="{StaticResource ButtonBrush}"
                     Due to yet another in an infinite series of undiagnosable cretinous random anomalies, 
                     bugs, hidden undocumented misfeatures, and moronic design flaws in WPF, plus the simple 
@@ -286,7 +331,7 @@
                     the lack of strong typing, HorizontalAlignment doesn't work on these controls if 
                     they're in a StackPanel. 
                     -->
-                    <Border
+                <Border
                         DockPanel.Dock="Bottom"
                         BorderThickness="1"
                         BorderBrush="{StaticResource MediumGrayBrush}"
@@ -295,7 +340,7 @@
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
                         >
-                        <TextBlock
+                    <TextBlock
                             Padding="3,0,0,0"
                             Foreground="{StaticResource ErrorTextBrush}"
                             Text="{Binding PathErrorText}"
@@ -303,13 +348,13 @@
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch"
                             />
-                    </Border>
-                </DockPanel>
+                </Border>
+            </DockPanel>
         </StackPanel>
 
         <StatusBar
             Name="StatusBar"
-            Grid.Row="4"
+            Grid.Row="5"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Bottom"
             Height="22"
