@@ -29,7 +29,7 @@
         <SolidColorBrush x:Key="PaleGrayBrush" Color="#feee" />
 
         <swm:TransformGroup x:Key="PathTransform">
-            <swm:TranslateTransform X="{Binding RequiredOffset.Width}" Y="{Binding RequiredOffset.Height}" />
+            <swm:TranslateTransform X="{Binding RequiredOffset.X}" Y="{Binding RequiredOffset.Y}" />
             <swm:ScaleTransform ScaleX="{Binding Scale}" ScaleY="{Binding Scale}" />
         </swm:TransformGroup>
 
@@ -193,9 +193,9 @@
                 VerticalContentAlignment="Top"
                 Padding="4"
                 Background="{StaticResource PaleGrayBrush}"
-                MouseMove="OverlayBoxes_MouseMove"
-                MouseDown="OverlayBoxes_MouseDown"
-                MouseUp="OverlayBoxes_MouseUp"
+                MouseMove="PathContentControl_MouseMove"
+                MouseDown="PathContentControl_MouseDown"
+                MouseUp="PathContentControl_MouseUp"
                 >
                 <Canvas
                     RenderTransform="{StaticResource PathTransform}"

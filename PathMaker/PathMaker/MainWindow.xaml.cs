@@ -381,70 +381,127 @@ namespace PathMaker
             */
         }
 
-        Size _szDragTargetOffs;
+        Point _ptDragTargetOffs;
         PathFigure _pfDragBox;
+        PathFigure _pfDragFigure;
+        Point? _ptDragViewPort;
 
-        private void OverlayBoxes_MouseMove(object sender, MouseEventArgs e)
+        private void PathContentControl_MouseMove(object sender, MouseEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
+                var ptMouse = e.GetPosition(PathCanvas);
+                PathFigure pfDragged = null;
+
                 if (null != _pfDragBox)
                 {
+                    pfDragged = _pfDragBox;
+                }
+                else if (null != _pfDragFigure)
+                {
+                    pfDragged = _pfDragFigure;
+                }
+
+                if (null != pfDragged)
+                {
                     var pen = new Pen(Brushes.Black, 0);
-                    var ptMouse = e.GetPosition(PathCanvas);
-                    var tmpg = new PathGeometry(new[] { _pfDragBox });
+                    var tmpg = new PathGeometry(new[] { pfDragged });
                     var rcBox = tmpg.GetRenderBounds(pen);
 
-                    //Trace.Point("ptMouse", ptMouse);
-
-                    ptMouse = new Point(ptMouse.X, ptMouse.Y);
-
-                    //Trace.Point("ptMouse rounded", ptMouse);
-
                     //  X,Y coordinates. Mouse movements are scaled by the transform. 
-                    double xDest = ptMouse.X - _szDragTargetOffs.Width;
-                    double yDest = ptMouse.Y - _szDragTargetOffs.Height;
+                    double xDest = ptMouse.X - _ptDragTargetOffs.X;
+                    double yDest = ptMouse.Y - _ptDragTargetOffs.Y;
 
-                    double xOffs = xDest - _pfDragBox.StartPoint.X;
-                    double yOffs = yDest - _pfDragBox.StartPoint.Y;
+                    double xOffs = xDest - pfDragged.StartPoint.X;
+                    double yOffs = yDest - pfDragged.StartPoint.Y;
 
-                    //  It knows what to do with this
-                    _pfDragBox.StartPoint = new Point(xDest, yDest);
+                    if (pfDragged == _pfDragBox)
+                    {
+                        //  It knows what to do with this
+                        pfDragged.StartPoint = new Point(xDest, yDest);
+                    }
+                    else
+                    {
+                        //pfDragged.StartPoint = ViewModel.Snap(pfDragged.StartPoint, xOffs, yOffs);
+                        pfDragged.Offset(xOffs, yOffs);
+                    }
+                }
+                else if (_ptDragViewPort.HasValue)
+                {
+                    double xOffs = ptMouse.X - _ptDragViewPort.Value.X;
+                    double yOffs = ptMouse.Y - _ptDragViewPort.Value.Y;
+
+                    ViewModel.RequiredOffset = new Point(ViewModel.RequiredOffset.X + xOffs, ViewModel.RequiredOffset.Y + yOffs);
                 }
             }
         }
 
-        private void OverlayBoxes_MouseDown(object sender, MouseButtonEventArgs e)
+        private void PathContentControl_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            var pg = ViewModel.OverlayBoxes as PathGeometry;
-            var pen = new Pen(Brushes.Black, 0);
+            var pgBoxes = ViewModel.OverlayBoxes as PathGeometry;
+            var pgLines = ViewModel.Geometry as PathGeometry;
+            var penBox = new Pen(Brushes.Black, 0);
+            var penSegment = ViewModel.GetPen();
 
-            foreach (PathFigure pf in pg.Figures)
+            var figures = pgBoxes.Figures.Union(pgLines.Figures);
+
+            int ctBoxes = pgBoxes.Figures.Count;
+
+            foreach (PathFigure pf in figures)
             {
+                bool bIsHit = false;
+                bool bIsBox = ctBoxes-- > 0;
+                var pen = bIsBox ? penBox : penSegment;
+
                 var ptMouse = e.GetPosition(PathCanvas);
                 var tmpg = new PathGeometry(new[] { pf });
-                var rcBox = tmpg.GetRenderBounds(pen);
 
-                if (rcBox.Contains(ptMouse))
+                bIsHit = tmpg.FillContains(ptMouse) || tmpg.StrokeContains(pen, ptMouse);
+
+                if (!bIsBox)
                 {
-                    _szDragTargetOffs = new Size(ptMouse.X - rcBox.Left, ptMouse.Y - rcBox.Top);
+                    var p = new System.Windows.Shapes.Path() { Data = tmpg };
+                    //p.RenderTransform = PathContentControl.RenderTransform;
+                    var ht = VisualTreeHelper.HitTest(p, ptMouse);
+                    var rcSegment = tmpg.GetRenderBounds(penSegment);
+                }
 
-                    _pfDragBox = pf;
+                if (bIsHit)
+                {
+                    var rcBox = tmpg.GetRenderBounds(pen);
+                    _ptDragTargetOffs = new Point(ptMouse.X - rcBox.Left, ptMouse.Y - rcBox.Top);
+
+                    if (bIsBox)
+                    {
+                        _pfDragBox = pf;
+                    }
+                    else
+                    {
+                        _pfDragFigure = pf;
+                    }
 
                     PathCanvas.CaptureMouse();
 
                     return;
                 }
             }
+
+            _ptDragViewPort = e.GetPosition(PathCanvas);
+            PathCanvas.CaptureMouse();
         }
 
-        private void OverlayBoxes_MouseUp(object sender, MouseButtonEventArgs e)
+        private void PathContentControl_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (_pfDragBox != null)
+            if (_pfDragBox != null || _pfDragFigure != null)
             {
                 _pfDragBox = null;
-                PathCanvas.ReleaseMouseCapture();
+                _pfDragFigure = null;
                 ViewModel.UpdatePath();
+            }
+
+            if (PathCanvas.IsMouseCaptured)
+            {
+                PathCanvas.ReleaseMouseCapture();
             }
         }
 

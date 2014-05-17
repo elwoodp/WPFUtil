@@ -272,8 +272,8 @@ Q 3,-1 6,0";
         }
         */
 
-        private System.Windows.Size _requiredOffset = new System.Windows.Size();
-        public System.Windows.Size RequiredOffset
+        private System.Windows.Point _requiredOffset = new System.Windows.Point();
+        public System.Windows.Point RequiredOffset
         {
             get { return _requiredOffset; }
             set
@@ -440,10 +440,13 @@ Q 3,-1 6,0";
 
         public Point Snap(Point pt)
         {
-            Point ptNew = new Point(pt.X, pt.Y);
+            return Snap(pt, 0, 0);
+        }
 
-            //ptNew.X = Math.Round(pt.X, 1);
-            //ptNew.Y = Math.Round(pt.Y, 1);
+        public Point Snap(Point pt, double xOffs, double yOffs)
+        {
+            Point ptNew = new Point(pt.X + xOffs, pt.Y + yOffs);
+
             ptNew.X -= ptNew.X % SnapTo;
             ptNew.Y -= ptNew.Y % SnapTo;
 
@@ -928,6 +931,7 @@ Q 3,-1 6,0";
 
                 var rect = geometry.GetRenderBounds(pen);
                 var rcOverlayBoxes = OverlayBoxes.GetRenderBounds(pen);
+                
                 rect.Union(rcOverlayBoxes.TopLeft);
                 rect.Union(rcOverlayBoxes.BottomRight);
 
@@ -935,7 +939,7 @@ Q 3,-1 6,0";
                 double yMin = Math.Abs(Math.Floor(rect.Top) - 1);
 
                 OffsetTransform = new TranslateTransform(xMin, yMin);
-                RequiredOffset = new System.Windows.Size(xMin, yMin);
+                RequiredOffset = new System.Windows.Point(xMin, yMin);
 
                 PathActualBounds = rect;
 
@@ -1099,6 +1103,109 @@ Q 3,-1 6,0";
 
     public static class PathSegmentExtensions
     {
+        public static void Offset(this PathFigure pf, double xOffs, double yOffs)
+        {
+            pf.StartPoint = pf.StartPoint.Add(xOffs, yOffs);
+
+            foreach (var seg in pf.Segments)
+            {
+                seg.Offset(xOffs, yOffs);
+            }
+        }
+
+        public static Point Add(this Point pt, double xOffs, double yOffs)
+        {
+            return new Point(pt.X + xOffs, pt.Y + yOffs);
+        }
+
+        public static void Offset(this PathSegment seg, double xOffs, double yOffs)
+        {
+            if (seg == null)
+            {
+                throw new ArgumentNullException("seg");
+            }
+
+            if (seg is BezierSegment)
+            {
+                (seg as BezierSegment).Offset(xOffs, yOffs);
+            }
+            else if (seg is LineSegment)
+            {
+                (seg as LineSegment).Offset(xOffs, yOffs);
+            }
+            else if (seg is ArcSegment)
+            {
+                (seg as ArcSegment).Offset(xOffs, yOffs);
+            }
+            else if (seg is QuadraticBezierSegment)
+            {
+                (seg as QuadraticBezierSegment).Offset(xOffs, yOffs);
+            }
+            else if (seg is PolyBezierSegment)
+            {
+                (seg as PolyBezierSegment).Offset(xOffs, yOffs);
+            }
+            else if (seg is PolyLineSegment)
+            {
+                (seg as PolyLineSegment).Offset(xOffs, yOffs);
+            }
+            else if (seg is PolyQuadraticBezierSegment)
+            {
+                (seg as PolyQuadraticBezierSegment).Offset(xOffs, yOffs);
+            }
+            else
+            {
+                throw new Exception("Unaccomodated path segment type " + seg.GetType().Name);
+            }
+        }
+
+        public static void Offset(this BezierSegment seg, double xOffs, double yOffs)
+        {
+            seg.Point1 = seg.Point1.Add(xOffs, yOffs);
+            seg.Point2 = seg.Point2.Add(xOffs, yOffs);
+            seg.Point3 = seg.Point3.Add(xOffs, yOffs);
+        }
+
+        public static void Offset(this LineSegment seg, double xOffs, double yOffs)
+        {
+            seg.Point = seg.Point.Add(xOffs, yOffs);
+        }
+
+        public static void Offset(this ArcSegment seg, double xOffs, double yOffs)
+        {
+            seg.Point = seg.Point.Add(xOffs, yOffs);
+        }
+
+        public static void Offset(this QuadraticBezierSegment seg, double xOffs, double yOffs)
+        {
+            seg.Point1 = seg.Point1.Add(xOffs, yOffs);
+            seg.Point2 = seg.Point2.Add(xOffs, yOffs);
+        }
+
+        public static void Offset(this PolyBezierSegment seg, double xOffs, double yOffs)
+        {
+            for (int i = 0; i < seg.Points.Count; ++i)
+            {
+                seg.Points[i] = seg.Points[i].Add(xOffs, yOffs);
+            }
+        }
+
+        public static void Offset(this PolyLineSegment seg, double xOffs, double yOffs)
+        {
+            for (int i = 0; i < seg.Points.Count; ++i)
+            {
+                seg.Points[i] = seg.Points[i].Add(xOffs, yOffs);
+            }
+        }
+
+        public static void Offset(this PolyQuadraticBezierSegment seg, double xOffs, double yOffs)
+        {
+            for (int i = 0; i < seg.Points.Count; ++i)
+            {
+                seg.Points[i] = seg.Points[i].Add(xOffs, yOffs);
+            }
+        }
+
         public static System.Windows.Point GetEndPoint(this PathSegment seg)
         {
             if (seg == null)
