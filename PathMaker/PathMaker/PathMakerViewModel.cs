@@ -341,9 +341,58 @@ namespace PathMaker
                 OnPropertyChanged("FileName");
             }
         }
+        private Geometry _overlayLines;
+        public Geometry OverlayLines
+        {
+            get { return _overlayLines; }
+            set
+            {
+                _overlayLines = value;
+                OnPropertyChanged("OverlayLines");
+            }
+        }
+
+        private Geometry _overlayBoxes;
+        public Geometry OverlayBoxes
+        {
+            get { return _overlayBoxes; }
+            set
+            {
+                _overlayBoxes = value;
+                OnPropertyChanged("OverlayBoxes");
+            }
+        }
         #endregion Public Properties
 
         #region Graphics Methods
+        protected PathFigure MakeGrabBox(PointRef ptref)
+        {
+            double width = 8 / Scale;
+
+            var ptCenter = ptref.Get();
+
+            var ptStart = new System.Windows.Point(ptCenter.X - (width / 2), ptCenter.Y - (width / 2));
+
+            var points = new System.Windows.Point[] {
+                new System.Windows.Point( ptCenter.X - (width / 2), ptCenter.Y + (width / 2)),
+                new System.Windows.Point( ptCenter.X + (width / 2), ptCenter.Y + (width / 2)),
+                new System.Windows.Point( ptCenter.X + (width / 2), ptCenter.Y - (width / 2))
+            };
+
+            PathSegment[] segments = { new PolyLineSegment(points, true) };
+
+            var pfig = new PathFigure(ptStart, segments, true);
+
+            pfig.Changed += (s, e) =>
+            {
+                ptref.Set(new System.Windows.Point(pfig.StartPoint.X + (width / 2), pfig.StartPoint.Y + (width / 2)));
+                OnPropertyChanged("OverlayBoxes");
+                OnPropertyChanged("OverlayLines");
+            };
+
+            return pfig;
+        }
+
         protected void UpdateGridGeometry()
         {
             double spacing = 1;
@@ -568,19 +617,12 @@ namespace PathMaker
             return new Pen(GetStrokeBrush(), StrokeThickness);
         }
 
-        public void UpdatePath()
+        /*public void UpdatePath()
         {
             try
             {
                 PathErrorText = "";
 
-                /*var path = new Path()
-                {
-                    Data = Geometry.Parse(PathText),
-                    Fill = GetFillBrush(),
-                    Stroke = GetStrokeBrush(),
-                    StrokeThickness = (int)StrokeThickness
-                };*/
                 var geometry = PathGeometry.Parse(PathText);
 
                 var rect = geometry.GetRenderBounds(new Pen(GetStrokeBrush(), StrokeThickness));
@@ -594,6 +636,191 @@ namespace PathMaker
                 PathActualBounds = rect;
 
                 Geometry = geometry;
+            }
+            catch (Exception ex)
+            {
+                PathErrorText = ex.Message;
+            }
+        }*/
+        public void UpdatePath()
+        {
+            try
+            {
+                PathErrorText = "";
+
+                var pathGeometry = new PathGeometry(PathFigureCollection.Parse(PathText));
+
+                List<PathFigure> overlayLines = new List<PathFigure>();
+                List<PathFigure> overlayBoxes = new List<PathFigure>();
+                PathSegment[] end = new PathSegment[1];
+
+                System.Windows.Point ptStart;
+
+                pathGeometry.Changed += (s, e) =>
+                {
+                    _pathText = pathGeometry.ToString();
+                    OnPropertyChanged("PathText");
+                };
+
+                foreach (var pfLoop in pathGeometry.Figures)
+                {
+                    PathFigure pf = pfLoop;
+
+                    //  XXX  For Beziers, if the previous segment's StartPoint changed, that 
+                    //  will correctly change the bezier segment's start point, but not its controlLine startpoint
+                    ptStart = pf.StartPoint;
+
+                    PathSegment psPrev = null;
+
+                    overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => pf.StartPoint = pt)));
+
+                    foreach (var seg in pf.Segments)
+                    {
+                        if (seg is BezierSegment)
+                        {
+                            var segBez = seg as BezierSegment;
+
+                            //  Two control point lines
+                            //      1. Start to Point1
+                            //      2. End (Point3) to Point2
+                            end[0] = new LineSegment(segBez.Point1, true);
+                            var cp1Line = new PathFigure(ptStart, end, false);
+                            overlayLines.Add(cp1Line);
+
+                            end[0] = new LineSegment(segBez.Point2, true);
+                            var cp2Line = new PathFigure(segBez.Point3, end, false);
+                            overlayLines.Add(cp2Line);
+
+                            segBez.Changed += (s, e) =>
+                            {
+                                (cp1Line.Segments[0] as LineSegment).Point = segBez.Point1;
+                                (cp2Line.Segments[0] as LineSegment).Point = segBez.Point2;
+                                cp2Line.StartPoint = segBez.Point3;
+                            };
+
+                            if (psPrev != null)
+                            {
+                                var psPrevLocal = psPrev;
+                                psPrevLocal.Changed += (s, e) =>
+                                {
+                                    cp1Line.StartPoint = psPrevLocal.GetEndPoint();
+                                };
+                            }
+                            else
+                            {
+                                pf.Changed += (s, e) => cp1Line.StartPoint = pf.StartPoint;
+
+                                //overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => cp1Line.StartPoint = pf.StartPoint = pt)));
+                            }
+                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segBez.Point1, (pt) => segBez.Point1 = pt)));
+                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segBez.Point2, (pt) => segBez.Point2 = pt)));
+                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segBez.Point3, (pt) => segBez.Point3 = pt)));
+                        }
+                        else if (seg is LineSegment)
+                        {
+                            //  Control end point
+                            //  xxx Multiple line segments get converted to PolyLineSegment
+                            var segLine = (seg as LineSegment);
+                            //overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => pf.StartPoint = pt)));
+                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segLine.Point, (pt) => segLine.Point = pt)));
+                        }
+                        else if (seg is ArcSegment)
+                        {
+                            var segArc = (seg as ArcSegment);
+
+                            //  Control what?
+                            //  Y'know, we can map a control point onto anything. 
+
+                            if (psPrev != null)
+                            {
+                                //  xxx ???
+                                var psPrevLocal = psPrev;
+                                psPrevLocal.Changed += (s, e) =>
+                                {
+                                    //pf.StartPoint = psPrevLocal.GetEndPoint();
+                                };
+                            }
+
+                            //overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => pf.StartPoint = pt)));
+                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segArc.Point, (pt) => segArc.Point = pt)));
+                        }
+                        else if (seg is QuadraticBezierSegment)
+                        {
+                            //  One control point line
+                            var segQBS = seg as QuadraticBezierSegment;
+
+                            end[0] = new LineSegment(segQBS.Point1, true);
+                            var cp1Line = new PathFigure(ptStart, end, false);
+                            overlayLines.Add(cp1Line);
+
+                            segQBS.Changed += (s, e) =>
+                            {
+                                (cp1Line.Segments[0] as LineSegment).Point = segQBS.Point1;
+                            };
+
+                            if (psPrev != null)
+                            {
+                                var psPrevLocal = psPrev;
+                                psPrevLocal.Changed += (s, e) =>
+                                {
+                                    cp1Line.StartPoint = psPrevLocal.GetEndPoint();
+                                };
+                            }
+                            else
+                            {
+                                pf.Changed += (s, e) => cp1Line.StartPoint = pf.StartPoint;
+                                //overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => cp1Line.StartPoint = pf.StartPoint = pt)));
+                            }
+
+                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segQBS.Point1, (pt) => segQBS.Point1 = pt)));
+                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segQBS.Point2, (pt) => segQBS.Point2 = pt)));
+                        }
+                        else if (seg is PolyBezierSegment)
+                        {
+                            var segPBS = (seg as PolyBezierSegment);
+                        }
+                        else if (seg is PolyLineSegment)
+                        {
+                            var segPLS = (seg as PolyLineSegment);
+
+                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => pf.StartPoint = pt)));
+                            for (int i = 0; i < segPLS.Points.Count; ++i)
+                            {
+                                //  Don't hand a loop variable to a closure!
+                                var idx = i;
+                                overlayBoxes.Add(MakeGrabBox(new PointRef(() => segPLS.Points[idx], (pt) => segPLS.Points[idx] = pt)));
+                            }
+                        }
+                        else if (seg is PolyQuadraticBezierSegment)
+                        {
+                            var segPQBS = (seg as PolyQuadraticBezierSegment);
+                        }
+
+                        ptStart = seg.GetEndPoint();
+                        psPrev = seg;
+                    }
+
+                    psPrev = null;
+                }
+
+                OverlayLines = new PathGeometry(overlayLines);
+                OverlayBoxes = new PathGeometry(overlayBoxes);
+
+                var geometry = pathGeometry; //PathGeometry.Parse(PathText);
+
+                var rect = geometry.GetRenderBounds(new Pen(GetStrokeBrush(), StrokeThickness));
+
+                double xMin = Math.Abs(Math.Floor(rect.Left) - 1);
+                double yMin = Math.Abs(Math.Floor(rect.Top) - 1);
+
+                OffsetTransform = new TranslateTransform(xMin, yMin);
+                RequiredOffset = new System.Windows.Size(xMin, yMin);
+
+                PathActualBounds = rect;
+
+                Geometry = geometry;
+
+                //Path = path;
             }
             catch (Exception ex)
             {
@@ -710,5 +937,60 @@ namespace PathMaker
             FileName = "New Path " + ++_ct;
         }
         #endregion Commands
+    }
+
+    public class PointRef
+    {
+        public PointRef(Func<System.Windows.Point> get, Action<System.Windows.Point> set)
+        {
+            Get = get;
+            Set = set;
+        }
+        public readonly Func<System.Windows.Point> Get;
+        public readonly Action<System.Windows.Point> Set;
+    }
+
+    public static class PathSegmentExtensions
+    {
+        public static System.Windows.Point GetEndPoint(this PathSegment seg)
+        {
+            if (seg == null)
+            {
+                throw new ArgumentNullException("seg");
+            }
+
+            if (seg is BezierSegment)
+            {
+                return (seg as BezierSegment).Point3;
+            }
+            else if (seg is LineSegment)
+            {
+                return (seg as LineSegment).Point;
+            }
+            else if (seg is ArcSegment)
+            {
+                return (seg as ArcSegment).Point;
+            }
+            else if (seg is QuadraticBezierSegment)
+            {
+                return (seg as QuadraticBezierSegment).Point2;
+            }
+            else if (seg is PolyBezierSegment)
+            {
+                return (seg as PolyBezierSegment).Points.LastOrDefault();
+            }
+            else if (seg is PolyLineSegment)
+            {
+                return (seg as PolyLineSegment).Points.LastOrDefault();
+            }
+            else if (seg is PolyQuadraticBezierSegment)
+            {
+                return (seg as PolyQuadraticBezierSegment).Points.LastOrDefault();
+            }
+            else
+            {
+                throw new Exception("Unaccomodated path segment type " + seg.GetType().Name);
+            }
+        }
     }
 }

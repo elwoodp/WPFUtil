@@ -185,48 +185,66 @@
             ClipToBounds="True"
             >
             <ContentControl
+                Name="PathContentControl"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
                 HorizontalContentAlignment="Left"
                 VerticalContentAlignment="Top"
                 Padding="4"
                 Background="{StaticResource PaleGrayBrush}"
+                MouseMove="OverlayBoxes_MouseMove"
+                MouseDown="OverlayBoxes_MouseDown"
+                MouseUp="OverlayBoxes_MouseUp"
                 >
-                <!--ContentControl
-                    Name="PathContainer"
-                    Content="{Binding Path}"
-                    RenderTransform="{StaticResource ScaleTransform}"
-                    Width="Auto"
-                    Height="Auto"
-                    BorderBrush="Black"
-                    BorderThickness="1"
-                    Background="Transparent"
-                    /-->
-                <Canvas>
-                    <Path
+                <Canvas
+                    RenderTransform="{StaticResource PathTransform}"
+                    >
+                    <Path 
+                        Name="Background"
+                        Fill="{StaticResource PaleGrayBrush}"
+                        Data="M -1000,-1000 L -1000,1000 L 1000,1000 L 1000,-1000 Z"
+                        />
+                    <Canvas Name="GridUnderlay">
+                        <Path
                             Name="GridPath"
                             Stroke="Silver"
                             StrokeThickness="{Binding GridStrokeThickness}"
-                            RenderTransform="{StaticResource PathTransform}"
                             Data="{Binding GridGeometry}"
                             Visibility="{Binding IsGridVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                             />
-                    <Path
+                        <Path
                             Name="GridZeroPath"
                             Stroke="Gray"
                             StrokeThickness="{Binding GridStrokeThickness}"
-                            RenderTransform="{StaticResource PathTransform}"
                             Data="{Binding GridZeroGeometry}"
                             Visibility="{Binding IsGridVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                             />
-                    <Path
+                    </Canvas>
+                    <Canvas Name="PathCanvas">
+                        <Path
                             Name="UserPath"
                             Data="{Binding Geometry}"
                             Stroke="{Binding StrokeColor.Brush}"
                             Fill="{Binding FillColor.Brush}"
                             StrokeThickness="{Binding StrokeThickness}"
-                            RenderTransform="{StaticResource PathTransform}"
                             />
+                    </Canvas>
+                    <Canvas Name="InteractionOverlays">
+                        <Path
+                            Stroke="DarkOrange"
+                            StrokeThickness="{Binding GridStrokeThickness}"
+                            Data="{Binding OverlayLines}"
+                            Opacity="0.75"
+                            Visibility="{Binding IsGridVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            />
+                        <Path
+                            Fill="OliveDrab"
+                            StrokeThickness="0"
+                            Data="{Binding OverlayBoxes}"
+                            Opacity="0.75"
+                            Visibility="{Binding IsGridVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            />
+                    </Canvas>
                 </Canvas>
             </ContentControl>
         </StackPanel>

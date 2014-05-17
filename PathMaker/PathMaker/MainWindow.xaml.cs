@@ -380,5 +380,80 @@ namespace PathMaker
             int w = 0;
             */
         }
+
+        Size _szDragTargetOffs;
+        PathFigure _pfDragBox;
+
+        private static int _pathDecimals = 1;
+
+        private void OverlayBoxes_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                if (null != _pfDragBox)
+                {
+                    var pen = new Pen(Brushes.Black, 0);
+                    var ptMouse = e.GetPosition(PathCanvas);
+                    var tmpg = new PathGeometry(new[] { _pfDragBox });
+                    var rcBox = tmpg.GetRenderBounds(pen);
+
+                    ptMouse = new Point(Math.Round(ptMouse.X, _pathDecimals), Math.Round(ptMouse.Y, _pathDecimals));
+
+                    //  X,Y coordinates. Mouse movements are scaled by the transform. 
+                    //  Which is nice, until you scale it by 6 or 11 or something that doesn't go evenly
+                    //  into 1, and everything goes weird. 
+                    double xDest = ptMouse.X - _szDragTargetOffs.Width;
+                    double yDest = ptMouse.Y - _szDragTargetOffs.Height;
+
+                    double xOffs = xDest - _pfDragBox.StartPoint.X;
+                    double yOffs = yDest - _pfDragBox.StartPoint.Y;
+
+                    _pfDragBox.StartPoint = new Point(Math.Round(xDest, _pathDecimals), Math.Round(yDest, _pathDecimals));
+
+                    double scale = ViewModel.Scale;
+
+                    foreach (PolyLineSegment seg in _pfDragBox.Segments)
+                    {
+                        for (int i = 0; i < seg.Points.Count; ++i)
+                        {
+                            var pt = seg.Points[i];
+                            pt.X = Math.Round(pt.X + xOffs, _pathDecimals);
+                            pt.Y = Math.Round(pt.Y + yOffs, _pathDecimals);
+                            seg.Points[i] = pt;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void OverlayBoxes_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var pg = ViewModel.OverlayBoxes as PathGeometry;
+            var pen = new Pen(Brushes.Black, 0);
+
+            foreach (PathFigure pf in pg.Figures)
+            {
+                var ptMouse = e.GetPosition(PathCanvas);
+                var tmpg = new PathGeometry(new[] { pf });
+                var rcBox = tmpg.GetRenderBounds(pen);
+
+                if (rcBox.Contains(ptMouse))
+                {
+                    _szDragTargetOffs = new Size(Math.Round(ptMouse.X - rcBox.Left, _pathDecimals), Math.Round(ptMouse.Y - rcBox.Top, _pathDecimals));
+
+                    _pfDragBox = pf;
+
+                    PathCanvas.CaptureMouse();
+
+                    return;
+                }
+            }
+        }
+
+        private void OverlayBoxes_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            _pfDragBox = null;
+            PathCanvas.ReleaseMouseCapture();
+        }
     }
 }
