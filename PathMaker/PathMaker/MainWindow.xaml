@@ -127,9 +127,9 @@
             <!-- Text box-->
             <RowDefinition Name="TextBoxCell" Height="*" MinHeight="52" />
             <!-- Controls: Colors, line, etc. -->
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" MinHeight="52" />
             <!-- Controls: Colors, line, etc. -->
-            <RowDefinition Height="22" />
+            <RowDefinition Height="22" MinHeight="22" />
         </Grid.RowDefinitions>
         <DockPanel HorizontalAlignment="Stretch" 
                    LastChildFill="False" 
@@ -258,6 +258,7 @@
             Background="SlateGray" 
             BorderBrush="DarkSlateGray"
             IsEnabled="True"
+            DragDelta="GridSplitter_DragDelta"
             />
 
         <TextBox 

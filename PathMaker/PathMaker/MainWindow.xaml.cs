@@ -442,5 +442,10 @@ namespace PathMaker
             _pfDragBox = null;
             PathCanvas.ReleaseMouseCapture();
         }
+
+        private void GridSplitter_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            
+        }
     }
 }

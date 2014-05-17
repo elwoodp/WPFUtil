@@ -51,10 +51,16 @@ namespace PathMaker
             AppTitle = "PathMaker";
 
 #if DEBUG
-            PathText = CornerAndLeftBevelBezier12x22;
+            PathText = PolyCubicBezierTest;
 #endif
         }
 
+        public static readonly String PolyCubicBezierTest = @"M 0 0
+C -1,3 4,0 3,3
+C 2,6 7,3 6,6";
+        public static readonly String PolyQuadraticBezierTest = @"M0,0
+Q 0,2 3,1
+Q 3,-1 6,0";
         public static readonly String CornerAndLeftBevelBezier12x22 = "M -2.5,26 \nL -2.5,24 A 3,3 0 0 1 0,21.5 \nC 4,21.5 4,0 12,0.5 ";
         public static readonly String LeftBevelBezier12x22 = "M 0,21.5 C 4,21.5 4,0 12,0.5";
         public static readonly String FatX_8x8 = "M 2,0 L 0,2 L 2,4 L 0,6 L 2,8 L 4,6 L 6,8 L 8,6 L 6,4 L 8,2 L 6,0 L 4,2 Z";
@@ -232,6 +238,18 @@ namespace PathMaker
                 _scale = value;
                 UpdatePath();
                 OnPropertyChanged("Scale");
+            }
+        }
+
+        double _snapTo = 0.25;
+        public double SnapTo
+        {
+            get { return _snapTo; }
+            set
+            {
+                _snapTo = value;
+                UpdatePath();
+                OnPropertyChanged("SnapTo");
             }
         }
 
@@ -414,9 +432,6 @@ namespace PathMaker
                         }
                     }
 
-                    //Trace.Point("pfig.StartPoint", pfig.StartPoint);
-                    //Trace.Point("ptref.Set", ptNew);
-
                     ptref.Set(ptNewCenter);
 
                     OnPropertyChanged("OverlayBoxes");
@@ -431,8 +446,10 @@ namespace PathMaker
         {
             Point ptNew = new Point(pt.X, pt.Y);
 
-            ptNew.X = Math.Round(pt.X, 1);
-            ptNew.Y = Math.Round(pt.Y, 1);
+            //ptNew.X = Math.Round(pt.X, 1);
+            //ptNew.Y = Math.Round(pt.Y, 1);
+            ptNew.X -= ptNew.X % SnapTo;
+            ptNew.Y -= ptNew.Y % SnapTo;
 
             return ptNew;
         }
@@ -772,7 +789,7 @@ namespace PathMaker
 
                             //  Control what?
                             //  Y'know, we can map a control point onto anything. 
-                            //  But that doesn't necessarily make it usable. 
+                            //  ...but then again, that doesn't necessarily make it usable. 
 
                             /*if (psPrev != null)
                             {
@@ -818,13 +835,66 @@ namespace PathMaker
                         }
                         else if (seg is PolyBezierSegment)
                         {
-                            var segPBS = (seg as PolyBezierSegment);
+                            var segPCBS = (seg as PolyBezierSegment);
+
+                            //var segPQBS = (seg as PolyQuadraticBezierSegment);
+
+                            //  Cubic bezier: Two control points
+                            //  segPBS.Points = { ctlpt0A, ctlpt0B, end0, ctlpt1A, ctlpt1B, end1, ... }
+
+                            Point ptCLStart;
+                            var controlLinesThisSegment = new List<PathFigure>();
+
+                            for (int i = 0; i < segPCBS.Points.Count; ++i)
+                            {
+                                //  Don't hand a loop variable to a closure!
+                                var idx = i;
+                                overlayBoxes.Add(MakeGrabBox(new PointRef(() => segPCBS.Points[idx], (pt) => segPCBS.Points[idx] = pt)));
+
+                                //  Points 0,1, 3,4, 6,7 are control points
+                                if (idx % 3 < 2)
+                                {
+                                    //  First control point is for the previous endpoint
+                                    //  Second control point is for the next endpoint
+                                    int idxPtEnd = (i % 3 == 0) ? i - 1 : i + 1;
+                                    ptCLStart = (i == 0) ? pf.StartPoint : segPCBS.Points[idxPtEnd];
+                                    var cline = MakeControlLine(ptCLStart, segPCBS.Points[idx]);
+                                    controlLinesThisSegment.Add(cline);
+                                    overlayLines.Add(cline);
+                                }
+                                else
+                                {
+                                    //  Intersperse nulls so indexes correspond to segPCBS.Points
+                                    //  Keep it simple. 
+                                    controlLinesThisSegment.Add(null);
+                                }
+                            }
+
+                            pf.Changed += (s, e) => controlLinesThisSegment[0].StartPoint = pf.StartPoint;
+
+                            segPCBS.Changed += (s, e) =>
+                            {
+                                for (int i = 0; i < controlLinesThisSegment.Count; ++i)
+                                {
+                                    if (null == controlLinesThisSegment[i])
+                                        continue;
+
+                                    if (i > 0)
+                                    {
+                                        //  First control point is for the previous endpoint
+                                        //  Second control point is for the next endpoint
+                                        int idxPtEnd = (i % 3 == 0) ? i - 1 : i + 1;
+                                        controlLinesThisSegment[i].StartPoint = segPCBS.Points[idxPtEnd];
+                                    }
+                                    //  End point of control line is the control point. 
+                                    (controlLinesThisSegment[i].Segments[0] as LineSegment).Point = segPCBS.Points[i];
+                                }
+                            };
                         }
                         else if (seg is PolyLineSegment)
                         {
                             var segPLS = (seg as PolyLineSegment);
 
-                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => pf.StartPoint = pt)));
                             for (int i = 0; i < segPLS.Points.Count; ++i)
                             {
                                 //  Don't hand a loop variable to a closure!
@@ -835,6 +905,40 @@ namespace PathMaker
                         else if (seg is PolyQuadraticBezierSegment)
                         {
                             var segPQBS = (seg as PolyQuadraticBezierSegment);
+
+                            //  segPQBS.Points = { ctlpt0, end0, ctlpt1, end1, ... }
+
+                            Point ptCLStart;
+                            var controlLines = new List<PathFigure>();
+
+                            for (int i = 0; i < segPQBS.Points.Count; ++i)
+                            {
+                                //  Don't hand a loop variable to a closure!
+                                var idx = i;
+                                overlayBoxes.Add(MakeGrabBox(new PointRef(() => segPQBS.Points[idx], (pt) => segPQBS.Points[idx] = pt)));
+                                //  Even numbered points are control points
+                                if (idx % 2 == 0)
+                                {
+                                    ptCLStart = ( i == 0 ) ? pf.StartPoint : segPQBS.Points[idx - 1];
+                                    var cline = MakeControlLine(ptCLStart, segPQBS.Points[idx]);
+                                    controlLines.Add(cline);
+                                    overlayLines.Add(cline);
+                                }
+                            }
+                            
+                            pf.Changed += (s,e) => controlLines[0].StartPoint = pf.StartPoint;
+
+                            segPQBS.Changed += (s, e) =>
+                            {
+                                for (int i = 0; i < controlLines.Count; ++i)
+                                {
+                                    if (i > 0)
+                                    {
+                                        controlLines[i].StartPoint = segPQBS.Points[(i * 2) - 1];
+                                    }
+                                    (controlLines[i].Segments[0] as LineSegment).Point = segPQBS.Points[(i * 2)];
+                                }
+                            };
                         }
 
                         ptStart = seg.GetEndPoint();
@@ -865,6 +969,13 @@ namespace PathMaker
             {
                 PathErrorText = ex.Message;
             }
+        }
+
+        public PathFigure MakeControlLine(Point ptStart, Point ptControlPoint)
+        {
+            var end = new[]{ new LineSegment(ptControlPoint, true) };
+            var cpLine = new PathFigure(ptStart, end, false);
+            return cpLine;
         }
 
         internal void LoadSettings(PathMaker.Properties.Settings settings)
