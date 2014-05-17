@@ -371,7 +371,7 @@ namespace PathMaker
 
             var ptCenter = ptref.Get();
 
-            var ptStart = new System.Windows.Point(ptCenter.X - (width / 2), ptCenter.Y - (width / 2));
+            var ptStartPointPrev = new System.Windows.Point(ptCenter.X - (width / 2), ptCenter.Y - (width / 2));
 
             var points = new System.Windows.Point[] {
                 new System.Windows.Point( ptCenter.X - (width / 2), ptCenter.Y + (width / 2)),
@@ -381,16 +381,60 @@ namespace PathMaker
 
             PathSegment[] segments = { new PolyLineSegment(points, true) };
 
-            var pfig = new PathFigure(ptStart, segments, true);
+            var pfig = new PathFigure(ptStartPointPrev, segments, true);
 
             pfig.Changed += (s, e) =>
             {
-                ptref.Set(new System.Windows.Point(pfig.StartPoint.X + (width / 2), pfig.StartPoint.Y + (width / 2)));
-                OnPropertyChanged("OverlayBoxes");
-                OnPropertyChanged("OverlayLines");
+                if (! Point.Equals(ptStartPointPrev, pfig.StartPoint))
+                {
+                    var ptTmpStartPointPrev = ptStartPointPrev;
+                    ptStartPointPrev = pfig.StartPoint;
+
+                    var ptNewCenter = new System.Windows.Point(pfig.StartPoint.X + (width / 2), pfig.StartPoint.Y + (width / 2));
+
+                    Trace.Point("ptNewCenter", ptNewCenter);
+                    ptNewCenter = Snap(ptNewCenter);
+                    Trace.Point("ptNewCenter Snapped", ptNewCenter);
+
+                    ptStartPointPrev = new System.Windows.Point(ptNewCenter.X - (width / 2), ptNewCenter.Y - (width / 2));
+                    pfig.StartPoint = ptStartPointPrev;
+
+                    double xOffs = pfig.StartPoint.X - ptTmpStartPointPrev.X;
+                    double yOffs = pfig.StartPoint.Y - ptTmpStartPointPrev.Y;
+
+                    foreach (PolyLineSegment seg in pfig.Segments)
+                    {
+                        for (int i = 0; i < seg.Points.Count; ++i)
+                        {
+                            var pt = seg.Points[i];
+                            //  Don't round these, it changes the size of the box!
+                            pt.X += xOffs;
+                            pt.Y += yOffs;
+                            seg.Points[i] = pt;
+                        }
+                    }
+
+                    //Trace.Point("pfig.StartPoint", pfig.StartPoint);
+                    //Trace.Point("ptref.Set", ptNew);
+
+                    ptref.Set(ptNewCenter);
+
+                    OnPropertyChanged("OverlayBoxes");
+                    OnPropertyChanged("OverlayLines");
+                }
             };
 
             return pfig;
+        }
+
+        public Point Snap(Point pt)
+        {
+            Point ptNew = new Point(pt.X, pt.Y);
+
+            ptNew.X = Math.Round(pt.X, 1);
+            ptNew.Y = Math.Round(pt.Y, 1);
+
+            return ptNew;
         }
 
         protected void UpdateGridGeometry()
@@ -943,6 +987,17 @@ namespace PathMaker
         }
         public readonly Func<System.Windows.Point> Get;
         public readonly Action<System.Windows.Point> Set;
+    }
+
+    public static class Trace
+    {
+        public static void Point(string label, Point pt)
+        {
+            String msg = String.Format("Point {0,40}: {1}, {2}", label, pt.X, pt.Y);
+
+            System.Diagnostics.Trace.WriteLine(msg);
+        }
+
     }
 
     public static class PathSegmentExtensions
