@@ -709,9 +709,8 @@ namespace PathMaker
                             else
                             {
                                 pf.Changed += (s, e) => cp1Line.StartPoint = pf.StartPoint;
-
-                                //overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => cp1Line.StartPoint = pf.StartPoint = pt)));
                             }
+
                             overlayBoxes.Add(MakeGrabBox(new PointRef(() => segBez.Point1, (pt) => segBez.Point1 = pt)));
                             overlayBoxes.Add(MakeGrabBox(new PointRef(() => segBez.Point2, (pt) => segBez.Point2 = pt)));
                             overlayBoxes.Add(MakeGrabBox(new PointRef(() => segBez.Point3, (pt) => segBez.Point3 = pt)));
@@ -721,7 +720,6 @@ namespace PathMaker
                             //  Control end point
                             //  xxx Multiple line segments get converted to PolyLineSegment
                             var segLine = (seg as LineSegment);
-                            //overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => pf.StartPoint = pt)));
                             overlayBoxes.Add(MakeGrabBox(new PointRef(() => segLine.Point, (pt) => segLine.Point = pt)));
                         }
                         else if (seg is ArcSegment)
@@ -730,8 +728,9 @@ namespace PathMaker
 
                             //  Control what?
                             //  Y'know, we can map a control point onto anything. 
+                            //  But that doesn't necessarily make it usable. 
 
-                            if (psPrev != null)
+                            /*if (psPrev != null)
                             {
                                 //  xxx ???
                                 var psPrevLocal = psPrev;
@@ -739,9 +738,8 @@ namespace PathMaker
                                 {
                                     //pf.StartPoint = psPrevLocal.GetEndPoint();
                                 };
-                            }
+                            }*/
 
-                            //overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => pf.StartPoint = pt)));
                             overlayBoxes.Add(MakeGrabBox(new PointRef(() => segArc.Point, (pt) => segArc.Point = pt)));
                         }
                         else if (seg is QuadraticBezierSegment)
@@ -769,7 +767,6 @@ namespace PathMaker
                             else
                             {
                                 pf.Changed += (s, e) => cp1Line.StartPoint = pf.StartPoint;
-                                //overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => cp1Line.StartPoint = pf.StartPoint = pt)));
                             }
 
                             overlayBoxes.Add(MakeGrabBox(new PointRef(() => segQBS.Point1, (pt) => segQBS.Point1 = pt)));
@@ -819,8 +816,6 @@ namespace PathMaker
                 PathActualBounds = rect;
 
                 Geometry = geometry;
-
-                //Path = path;
             }
             catch (Exception ex)
             {
