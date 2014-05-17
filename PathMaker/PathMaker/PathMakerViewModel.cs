@@ -49,10 +49,6 @@ namespace PathMaker
             Initialize(null);
 
             AppTitle = "PathMaker";
-
-#if DEBUG
-            PathText = PolyCubicBezierTest;
-#endif
         }
 
         public static readonly String PolyCubicBezierTest = @"M 0 0
@@ -410,9 +406,9 @@ Q 3,-1 6,0";
 
                     var ptNewCenter = new System.Windows.Point(pfig.StartPoint.X + (width / 2), pfig.StartPoint.Y + (width / 2));
 
-                    Trace.Point("ptNewCenter", ptNewCenter);
+                    //Trace.Point("ptNewCenter", ptNewCenter);
                     ptNewCenter = Snap(ptNewCenter);
-                    Trace.Point("ptNewCenter Snapped", ptNewCenter);
+                    //Trace.Point("ptNewCenter Snapped", ptNewCenter);
 
                     ptStartPointPrev = new System.Windows.Point(ptNewCenter.X - (width / 2), ptNewCenter.Y - (width / 2));
                     pfig.StartPoint = ptStartPointPrev;
@@ -678,31 +674,6 @@ Q 3,-1 6,0";
             return new Pen(GetStrokeBrush(), StrokeThickness);
         }
 
-        /*public void UpdatePath()
-        {
-            try
-            {
-                PathErrorText = "";
-
-                var geometry = PathGeometry.Parse(PathText);
-
-                var rect = geometry.GetRenderBounds(new Pen(GetStrokeBrush(), StrokeThickness));
-
-                double xMin = Math.Abs(Math.Floor(rect.Left) - 1);
-                double yMin = Math.Abs(Math.Floor(rect.Top) - 1);
-
-                OffsetTransform = new TranslateTransform(xMin, yMin);
-                RequiredOffset = new System.Windows.Size(xMin, yMin);
-
-                PathActualBounds = rect;
-
-                Geometry = geometry;
-            }
-            catch (Exception ex)
-            {
-                PathErrorText = ex.Message;
-            }
-        }*/
         public void UpdatePath()
         {
             try
@@ -953,7 +924,12 @@ Q 3,-1 6,0";
 
                 var geometry = pathGeometry; //PathGeometry.Parse(PathText);
 
-                var rect = geometry.GetRenderBounds(new Pen(GetStrokeBrush(), StrokeThickness));
+                var pen = new Pen(GetStrokeBrush(), StrokeThickness);
+
+                var rect = geometry.GetRenderBounds(pen);
+                var rcOverlayBoxes = OverlayBoxes.GetRenderBounds(pen);
+                rect.Union(rcOverlayBoxes.TopLeft);
+                rect.Union(rcOverlayBoxes.BottomRight);
 
                 double xMin = Math.Abs(Math.Floor(rect.Left) - 1);
                 double yMin = Math.Abs(Math.Floor(rect.Top) - 1);
@@ -991,6 +967,16 @@ Q 3,-1 6,0";
                 Scale = (int)Scale;
             }
 
+#if DEBUG
+            //SetUpTest();
+#endif
+        }
+
+        public void SetUpTest()
+        {
+            PathText = PolyCubicBezierTest + PolyQuadraticBezierTest;
+            StrokeThickness = 0.1;
+            Scale = 40;
         }
 
         internal void SaveSettings(PathMaker.Properties.Settings settings)

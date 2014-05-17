@@ -17,6 +17,7 @@
     DragOver="Window_DragOver"
     AllowDrop="True"
     Icon="MainIcon.ico"
+    SizeChanged="Window_SizeChanged"
     >
     <Window.Resources>
         <Color x:Key="BackgroundColor">#FFA3C3EC</Color>
@@ -119,17 +120,17 @@
         ContextMenu="{StaticResource MainWindowContextMenu}"
         >
         <Grid.RowDefinitions>
-            <RowDefinition Name="MenuPanel" Height="Auto" />
+            <RowDefinition Name="RowMenuPanel" Height="Auto" />
             <!-- Path display -->
-            <RowDefinition Name="TopPanel" Height="*" MinHeight="52" />
+            <RowDefinition Name="RowTopPanel" Height="*" MinHeight="52" />
             <!-- GridSplitter -->
-            <RowDefinition Height="6" />
+            <RowDefinition Name="RowGridSplitter" Height="6" />
             <!-- Text box-->
-            <RowDefinition Name="TextBoxCell" Height="*" MinHeight="52" />
+            <RowDefinition Name="RowTextBoxCell" Height="*" MinHeight="52" />
             <!-- Controls: Colors, line, etc. -->
-            <RowDefinition Height="Auto" MinHeight="52" />
-            <!-- Controls: Colors, line, etc. -->
-            <RowDefinition Height="22" MinHeight="22" />
+            <RowDefinition Name="RowGraphicsControls" Height="78" MinHeight="78" />
+            <!-- Statusbar -->
+            <RowDefinition Name="RowStatusBar" Height="22" MinHeight="22" />
         </Grid.RowDefinitions>
         <DockPanel HorizontalAlignment="Stretch" 
                    LastChildFill="False" 
@@ -258,7 +259,6 @@
             Background="SlateGray" 
             BorderBrush="DarkSlateGray"
             IsEnabled="True"
-            DragDelta="GridSplitter_DragDelta"
             />
 
         <TextBox 
@@ -324,6 +324,10 @@
                     </StackPanel>
 
                     <CheckBox Content="Show Grid" Margin="2,0,2,0" IsChecked="{Binding IsGridVisible}" />
+
+                    <StackPanel Style="{StaticResource ControlPanelLabeledControl}">
+                        <Button Content="Test" Click="Test_Click" />
+                    </StackPanel>
                 </WrapPanel>
             </StackPanel>
             <DockPanel

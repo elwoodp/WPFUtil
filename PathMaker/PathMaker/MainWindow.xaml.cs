@@ -85,7 +85,7 @@ namespace PathMaker
                 Height = settings.MainWndHeight;
                 Width = settings.MainWndWidth;
                 WindowState = settings.MainWndState;
-                TopPanel.Height = Settings.TopPanelHeight;
+                RowTopPanel.Height = Settings.TopPanelHeight;
 
                 ViewModel.LoadSettings(settings);
             }
@@ -106,7 +106,7 @@ namespace PathMaker
 
                 Settings.MainWndHeight = Height;
                 Settings.MainWndWidth = Width;
-                Settings.TopPanelHeight = TopPanel.Height;
+                Settings.TopPanelHeight = RowTopPanel.Height;
 
                 ViewModel.SaveSettings(Settings);
                 Properties.Settings.Default.Save();
@@ -395,11 +395,11 @@ namespace PathMaker
                     var tmpg = new PathGeometry(new[] { _pfDragBox });
                     var rcBox = tmpg.GetRenderBounds(pen);
 
-                    Trace.Point("ptMouse", ptMouse);
+                    //Trace.Point("ptMouse", ptMouse);
 
                     ptMouse = new Point(ptMouse.X, ptMouse.Y);
 
-                    Trace.Point("ptMouse rounded", ptMouse);
+                    //Trace.Point("ptMouse rounded", ptMouse);
 
                     //  X,Y coordinates. Mouse movements are scaled by the transform. 
                     double xDest = ptMouse.X - _szDragTargetOffs.Width;
@@ -408,6 +408,7 @@ namespace PathMaker
                     double xOffs = xDest - _pfDragBox.StartPoint.X;
                     double yOffs = yDest - _pfDragBox.StartPoint.Y;
 
+                    //  It knows what to do with this
                     _pfDragBox.StartPoint = new Point(xDest, yDest);
                 }
             }
@@ -439,13 +440,116 @@ namespace PathMaker
 
         private void OverlayBoxes_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            _pfDragBox = null;
-            PathCanvas.ReleaseMouseCapture();
+            if (_pfDragBox != null)
+            {
+                _pfDragBox = null;
+                PathCanvas.ReleaseMouseCapture();
+                ViewModel.UpdatePath();
+            }
         }
 
-        private void GridSplitter_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            
+            double cxOtherRows = 
+                RowMenuPanel.ActualHeight
+                + RowGridSplitter.ActualHeight
+                + RowTextBoxCell.MinHeight
+                + RowGraphicsControls.MinHeight
+                + RowStatusBar.MinHeight;
+
+            RECT rcClient;
+            GetClientRect(new WindowInteropHelper(this).Handle, out rcClient);
+
+            double maxHeight = rcClient.Height - cxOtherRows;
+
+            RowTopPanel.MaxHeight = maxHeight;
+
+            //  XXX This changes the height of RowTextBoxCell to its MinHeight when the window is resized
+
+            //if (maxHeight < RowTopPanel.Height.Value)
+            {
+                RowTopPanel.Height = new GridLength(RowTopPanel.MaxHeight);
+            }
+
+            /*
+            System.Diagnostics.Trace.WriteLine("----------");
+
+            System.Diagnostics.Trace.WriteLine("MainGrid.RenderSize.Height    == " + MainGrid.RenderSize.Height);
+            System.Diagnostics.Trace.WriteLine("RowGraphicsControls.MinHeight == " + RowGraphicsControls.MinHeight);
+            System.Diagnostics.Trace.WriteLine("maxHeight                     == " + maxHeight);
+            System.Diagnostics.Trace.WriteLine("RowTopPanel.Height            == " + RowTopPanel.Height);
+            System.Diagnostics.Trace.WriteLine("RowTopPanel.MaxHeight         == " + RowTopPanel.MaxHeight);
+            */
+        }
+
+        #region Native Methods
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+ 
+        [Serializable, System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        public struct RECT
+        {
+          public int Left;
+          public int Top;
+          public int Right;
+          public int Bottom;
+ 
+          public RECT(int left_, int top_, int right_, int bottom_)
+          {
+            Left = left_;
+            Top = top_;
+            Right = right_;
+            Bottom = bottom_;
+          }
+ 
+          public int Height { get { return Bottom - Top; } }
+          public int Width { get { return Right - Left; } }
+          public Size Size { get { return new Size(Width, Height); } }
+ 
+          public Point Location { get { return new Point(Left, Top); } }
+ 
+          // Handy method for converting to a System.Drawing.Rectangle
+          public Rect ToRectangle()
+          { return new Rect(Left, Top, Right, Bottom); }
+ 
+          public static RECT FromRectangle(Rect rectangle)
+          {
+            return new Rect(rectangle.Left, rectangle.Top, rectangle.Right, rectangle.Bottom);
+          }
+ 
+          public override int GetHashCode()
+          {
+            return Left ^ ((Top << 13) | (Top >> 0x13))
+              ^ ((Width << 0x1a) | (Width >> 6))
+              ^ ((Height << 7) | (Height >> 0x19));
+          }
+ 
+          #region Operator overloads
+ 
+          public static implicit operator Rect(RECT rect)
+          {
+            return rect.ToRectangle();
+          }
+ 
+          public static implicit operator RECT(Rect rect)
+          {
+            return FromRectangle(rect);
+          }
+ 
+          #endregion
+        }
+ 
+        public static RECT GetClientRect(IntPtr hWnd)
+        {
+          RECT result = new RECT();
+          GetClientRect(hWnd, out result);
+          return result;
+        }
+        #endregion
+
+        private void Test_Click(object sender, RoutedEventArgs e)
+        {
+            ViewModel.SetUpTest();
         }
     }
 }
