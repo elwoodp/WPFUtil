@@ -422,7 +422,7 @@ namespace PathMaker
                     }
                     else
                     {
-                        //pfDragged.StartPoint = ViewModel.Snap(pfDragged.StartPoint, xOffs, yOffs);
+                        ViewModel.Snap(ref xOffs, ref yOffs);
                         pfDragged.Offset(xOffs, yOffs);
                     }
                 }

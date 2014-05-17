@@ -443,6 +443,12 @@ Q 3,-1 6,0";
             return Snap(pt, 0, 0);
         }
 
+        public void Snap(ref double xOffs, ref double yOffs)
+        {
+            xOffs -= xOffs % SnapTo;
+            yOffs -= yOffs % SnapTo;
+        }
+
         public Point Snap(Point pt, double xOffs, double yOffs)
         {
             Point ptNew = new Point(pt.X + xOffs, pt.Y + yOffs);
