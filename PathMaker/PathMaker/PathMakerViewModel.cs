@@ -51,6 +51,7 @@ namespace PathMaker
             AppTitle = "PathMaker";
         }
 
+        public static readonly String SimpleQuadraticBezier = "M0,0Q7,0,5,5";
         public static readonly String PolyCubicBezierTest = @"M 0 0
 C -1,3 4,0 3,3
 C 2,6 7,3 6,6";
@@ -376,10 +377,21 @@ Q 3,-1 6,0";
                 OnPropertyChanged("OverlayBoxes");
             }
         }
+
+        public bool IsDebug
+        {
+            get {
+#if DEBUG
+                return true;
+#else
+                return false;
+#endif
+            }
+        }
         #endregion Public Properties
 
         #region Graphics Methods
-        protected PathFigure MakeGrabBox(PointRef ptref)
+        protected PathFigure MakeDragBox(PointRef ptref)
         {
             double width = 8 / Scale;
 
@@ -691,6 +703,27 @@ Q 3,-1 6,0";
 
                 var pathGeometry = new PathGeometry(PathFigureCollection.Parse(PathText));
 
+
+                //  TODO
+                //
+                //  We have a problem where moving the control boxes moves the control lines etc., 
+                //  but moving the PathSegment itself doesn't move the control boxes. That's to 
+                //  avoid a loop where each one changes the other. 
+                //
+                //  You can cut that loop in a couple of ways, the simplest being to check first 
+                //  if the other guy already has the value you're about to assign to him, and wave 
+                //  off if so. 
+                //
+                //  But it might be better anyhow to add two attachable DependencyProperties to 
+                //  each PathFigure and PathSegment: One identifying what the thing is (drag box, 
+                //  control line, or actual path content), and another with a reference to an 
+                //  object that manages the whole thing and has references to all its parts. 
+                //
+                //  So instead of setting the drag box's StartPoint and letting events fire, we 
+                //  would obtain the SegmentManager instance and say "this dragbox did this", and 
+                //  let it rearrange all its parts. Or "this segment was dragged -23.1,+4.5", and 
+                //  ditto. 
+
                 List<PathFigure> overlayLines = new List<PathFigure>();
                 List<PathFigure> overlayBoxes = new List<PathFigure>();
                 PathSegment[] end = new PathSegment[1];
@@ -713,7 +746,7 @@ Q 3,-1 6,0";
 
                     PathSegment psPrev = null;
 
-                    overlayBoxes.Add(MakeGrabBox(new PointRef(() => pf.StartPoint, (pt) => pf.StartPoint = pt)));
+                    overlayBoxes.Add(MakeDragBox(new PointRef(() => pf.StartPoint, (pt) => pf.StartPoint = pt)));
 
                     foreach (var seg in pf.Segments)
                     {
@@ -752,16 +785,16 @@ Q 3,-1 6,0";
                                 pf.Changed += (s, e) => cp1Line.StartPoint = pf.StartPoint;
                             }
 
-                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segBez.Point1, (pt) => segBez.Point1 = pt)));
-                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segBez.Point2, (pt) => segBez.Point2 = pt)));
-                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segBez.Point3, (pt) => segBez.Point3 = pt)));
+                            overlayBoxes.Add(MakeDragBox(new PointRef(() => segBez.Point1, (pt) => segBez.Point1 = pt)));
+                            overlayBoxes.Add(MakeDragBox(new PointRef(() => segBez.Point2, (pt) => segBez.Point2 = pt)));
+                            overlayBoxes.Add(MakeDragBox(new PointRef(() => segBez.Point3, (pt) => segBez.Point3 = pt)));
                         }
                         else if (seg is LineSegment)
                         {
                             //  Control end point
                             //  xxx Multiple line segments get converted to PolyLineSegment
                             var segLine = (seg as LineSegment);
-                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segLine.Point, (pt) => segLine.Point = pt)));
+                            overlayBoxes.Add(MakeDragBox(new PointRef(() => segLine.Point, (pt) => segLine.Point = pt)));
                         }
                         else if (seg is ArcSegment)
                         {
@@ -781,7 +814,7 @@ Q 3,-1 6,0";
                                 };
                             }*/
 
-                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segArc.Point, (pt) => segArc.Point = pt)));
+                            overlayBoxes.Add(MakeDragBox(new PointRef(() => segArc.Point, (pt) => segArc.Point = pt)));
                         }
                         else if (seg is QuadraticBezierSegment)
                         {
@@ -810,8 +843,8 @@ Q 3,-1 6,0";
                                 pf.Changed += (s, e) => cp1Line.StartPoint = pf.StartPoint;
                             }
 
-                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segQBS.Point1, (pt) => segQBS.Point1 = pt)));
-                            overlayBoxes.Add(MakeGrabBox(new PointRef(() => segQBS.Point2, (pt) => segQBS.Point2 = pt)));
+                            overlayBoxes.Add(MakeDragBox(new PointRef(() => segQBS.Point1, (pt) => segQBS.Point1 = pt)));
+                            overlayBoxes.Add(MakeDragBox(new PointRef(() => segQBS.Point2, (pt) => segQBS.Point2 = pt)));
                         }
                         else if (seg is PolyBezierSegment)
                         {
@@ -829,7 +862,7 @@ Q 3,-1 6,0";
                             {
                                 //  Don't hand a loop variable to a closure!
                                 var idx = i;
-                                overlayBoxes.Add(MakeGrabBox(new PointRef(() => segPCBS.Points[idx], (pt) => segPCBS.Points[idx] = pt)));
+                                overlayBoxes.Add(MakeDragBox(new PointRef(() => segPCBS.Points[idx], (pt) => segPCBS.Points[idx] = pt)));
 
                                 //  Points 0,1, 3,4, 6,7 are control points
                                 if (idx % 3 < 2)
@@ -879,7 +912,7 @@ Q 3,-1 6,0";
                             {
                                 //  Don't hand a loop variable to a closure!
                                 var idx = i;
-                                overlayBoxes.Add(MakeGrabBox(new PointRef(() => segPLS.Points[idx], (pt) => segPLS.Points[idx] = pt)));
+                                overlayBoxes.Add(MakeDragBox(new PointRef(() => segPLS.Points[idx], (pt) => segPLS.Points[idx] = pt)));
                             }
                         }
                         else if (seg is PolyQuadraticBezierSegment)
@@ -895,7 +928,7 @@ Q 3,-1 6,0";
                             {
                                 //  Don't hand a loop variable to a closure!
                                 var idx = i;
-                                overlayBoxes.Add(MakeGrabBox(new PointRef(() => segPQBS.Points[idx], (pt) => segPQBS.Points[idx] = pt)));
+                                overlayBoxes.Add(MakeDragBox(new PointRef(() => segPQBS.Points[idx], (pt) => segPQBS.Points[idx] = pt)));
                                 //  Even numbered points are control points
                                 if (idx % 2 == 0)
                                 {
@@ -984,8 +1017,10 @@ Q 3,-1 6,0";
 
         public void SetUpTest()
         {
-            PathText = PolyCubicBezierTest + PolyQuadraticBezierTest;
+            //PathText = PolyCubicBezierTest + PolyQuadraticBezierTest;
+            PathText = SimpleQuadraticBezier;
             StrokeThickness = 0.1;
+            StrokeThickness = 1;
             Scale = 40;
         }
 

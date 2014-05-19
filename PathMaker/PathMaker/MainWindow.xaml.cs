@@ -406,7 +406,7 @@ namespace PathMaker
                 {
                     var pen = new Pen(Brushes.Black, 0);
                     var tmpg = new PathGeometry(new[] { pfDragged });
-                    var rcBox = tmpg.GetRenderBounds(pen);
+                    //var rcBox = tmpg.GetRenderBounds(pen);
 
                     //  X,Y coordinates. Mouse movements are scaled by the transform. 
                     double xDest = ptMouse.X - _ptDragTargetOffs.X;
@@ -456,20 +456,29 @@ namespace PathMaker
                 var ptMouse = e.GetPosition(PathCanvas);
                 var tmpg = new PathGeometry(new[] { pf });
 
-                bIsHit = tmpg.FillContains(ptMouse) || tmpg.StrokeContains(pen, ptMouse);
+                if (bIsBox)
+                {
+                    bIsHit = tmpg.FillContains(ptMouse);
+                }
+                else
+                {
+                    bIsHit = (ViewModel.FillColor.Color != Colors.Transparent && tmpg.FillContains(ptMouse))
+                          || (ViewModel.StrokeColor.Color != Colors.Transparent && tmpg.StrokeContains(pen, ptMouse));
+                }
 
                 if (!bIsBox)
                 {
-                    var p = new System.Windows.Shapes.Path() { Data = tmpg };
+                    //var p = new System.Windows.Shapes.Path() { Data = tmpg };
                     //p.RenderTransform = PathContentControl.RenderTransform;
-                    var ht = VisualTreeHelper.HitTest(p, ptMouse);
-                    var rcSegment = tmpg.GetRenderBounds(penSegment);
+                    //var ht = VisualTreeHelper.HitTest(p, ptMouse);
+                    //var rcSegment = tmpg.GetRenderBounds(penSegment);
                 }
 
                 if (bIsHit)
                 {
-                    var rcBox = tmpg.GetRenderBounds(pen);
-                    _ptDragTargetOffs = new Point(ptMouse.X - rcBox.Left, ptMouse.Y - rcBox.Top);
+                    //var rcBox = tmpg.GetRenderBounds(pen);
+                    //_ptDragTargetOffs = new Point(ptMouse.X - rcBox.Left, ptMouse.Y - rcBox.Top);
+                    _ptDragTargetOffs = new Point(ptMouse.X - pf.StartPoint.X, ptMouse.Y - pf.StartPoint.Y);
 
                     if (bIsBox)
                     {

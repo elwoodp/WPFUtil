@@ -128,7 +128,7 @@
             <!-- Text box-->
             <RowDefinition Name="RowTextBoxCell" Height="*" MinHeight="52" />
             <!-- Controls: Colors, line, etc. -->
-            <RowDefinition Name="RowGraphicsControls" Height="78" MinHeight="78" />
+            <RowDefinition Name="RowGraphicsControls" Height="120" MinHeight="120" />
             <!-- Statusbar -->
             <RowDefinition Name="RowStatusBar" Height="22" MinHeight="22" />
         </Grid.RowDefinitions>
@@ -224,6 +224,7 @@
                     <Canvas Name="PathCanvas">
                         <Path
                             Name="UserPath"
+                            StrokeMiterLimit="1"
                             Data="{Binding Geometry}"
                             Stroke="{Binding StrokeColor.Brush}"
                             Fill="{Binding FillColor.Brush}"
@@ -326,7 +327,9 @@
                     <CheckBox Content="Show Grid" Margin="2,0,2,0" IsChecked="{Binding IsGridVisible}" />
 
                     <StackPanel Style="{StaticResource ControlPanelLabeledControl}">
-                        <Button Content="Test" Click="Test_Click" Margin="2,0,2,0" Padding="8,0,8,0 "/>
+                        <Button 
+                            Visibility="{Binding IsDebug, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Content="Test" Click="Test_Click" Margin="2,0,2,0" Padding="8,0,8,0 "/>
                     </StackPanel>
                 </WrapPanel>
             </StackPanel>
